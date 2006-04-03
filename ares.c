@@ -1,19 +1,13 @@
 /*
-  +----------------------------------------------------------------------+
-  | PHP Version 5                                                        |
-  +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2006 The PHP Group                                |
-  +----------------------------------------------------------------------+
-  | This source file is subject to version 3.01 of the PHP license,      |
-  | that is bundled with this package in the file LICENSE, and is        |
-  | available through the world-wide-web at the following url:           |
-  | http://www.php.net/license/3_01.txt                                  |
-  | If you did not receive a copy of the PHP license and are unable to   |
-  | obtain it through the world-wide-web, please send a note to          |
-  | license@php.net so we can mail you a copy immediately.               |
-  +----------------------------------------------------------------------+
-  | Author:                                                              |
-  +----------------------------------------------------------------------+
+    +--------------------------------------------------------------------+
+    | PECL :: ares                                                       |
+    +--------------------------------------------------------------------+
+    | Redistribution and use in source and binary forms, with or without |
+    | modification, are permitted provided that the conditions mentioned |
+    | in the accompanying LICENSE file are met.                          |
+    +--------------------------------------------------------------------+
+    | Copyright (c) 2006, Michael Wallner <mike@php.net>                 |
+    +--------------------------------------------------------------------+
 */
 
 /* $Id$ */
@@ -48,6 +42,12 @@
 
 #ifndef ZEND_ENGINE_2
 #	define zend_is_callable(a,b,c) 1
+#	ifndef ZTS
+#		undef TSRMLS_SET_CTX
+#		define TSRMLS_SET_CTX
+#		undef TSRMLS_FETCH_FROM_CTX
+#		define TSRMLS_FETCH_FROM_CTX
+#	endif
 #endif
 
 #define PHP_ARES_LE_NAME "AsyncResolver"
@@ -55,8 +55,17 @@
 static int le_ares;
 static int le_ares_query;
 
-#define PHP_ARES_ERROR(err) \
+#ifdef HAVE_OLD_ARES_STRERROR
+#	define PHP_ARES_ERROR(err) { \
+	char *__tmp = NULL; \
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", ares_strerror(err, &__tmp)); \
+	if (__tmp) ares_free_errmem(__tmp); \
+}
+#else
+#	define PHP_ARES_ERROR(err) \
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", ares_strerror(err))
+#endif
+
 #define RETURN_ARES_ERROR(err) \
 	PHP_ARES_ERROR(err); \
 	RETURN_FALSE
@@ -76,7 +85,7 @@ typedef struct _php_ares {
 	ares_channel channel;
 	php_ares_options options;
 	zend_llist queries;
-	TSRMLS_D;
+	void ***tsrm_ls;
 	unsigned in_callback:1;
 	unsigned reserved:31;
 } php_ares;
@@ -776,12 +785,24 @@ static PHP_FUNCTION(ares_destroy)
 static PHP_FUNCTION(ares_strerror)
 {
 	long err;
+#ifdef HAVE_OLD_ARES_STRERROR
+	char *__tmp = NULL;
+	const char *__err;
+#endif
 	
 	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &err)) {
 		RETURN_FALSE;
 	}
 	
+#ifdef HAVE_OLD_ARES_STRERROR
+	__err = ares_strerror(err, &__tmp);
+	RETVAL_STRING(estrdup(__err), 0);
+	if (__tmp) {
+		ares_free_errmem(__tmp);
+	}
+#else
 	RETURN_STRING(estrdup(ares_strerror(err)), 0);
+#endif
 }
 /* }}} */
 
@@ -1069,7 +1090,14 @@ static PHP_FUNCTION(ares_result)
 			break;
 		default:
 			if (zerror) {
+#ifdef HAVE_OLD_ARES_STRERROR
+				char *__tmp = NULL;
+				const char *__err = ares_strerror(query->error, &__tmp);
+				ZVAL_STRING(zerror, estrdup(__err), 0);
+				if (__tmp) ares_free_errmem(__tmp);
+#else
 				ZVAL_STRING(zerror, estrdup(ares_strerror(query->error)), 0);
+#endif
 			}
 			RETVAL_FALSE;
 			break;
