@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package 
+<package
 		packagerversion="1.4.6" 
 		version="2.0" 
 		xmlns="http://pear.php.net/dtd/package-2.0" 
 		xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" 
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
 		xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0
-			 http://pear.php.net/dtd/tasks-1.0.xsd
+			http://pear.php.net/dtd/tasks-1.0.xsd
 			http://pear.php.net/dtd/package-2.0
 			http://pear.php.net/dtd/package-2.0.xsd">
  <name>ares</name>
@@ -21,8 +21,7 @@
   <email>mike@php.net</email>
   <active>yes</active>
  </lead>
- <date>2006-04-02</date>
- <time>12:07:07</time>
+ <date>2006-00-00</date>
  <version>
   <release>0.5.0</release>
   <api>0.5.0</api>
@@ -37,16 +36,17 @@ Initial PECL release
 ]]></notes>
  <contents>
   <dir name="/">
+   <file role="doc" name="CREDITS"/>
+   <file role="doc" name="EXPERIMENTAL"/>
+   <file role="doc" name="LICENSE"/>
+   <file role="src" name="config.m4"/>
+   <file role="src" name="ares.c"/>
+   <file role="src" name="php_ares.h"/>
    <dir name="tests">
-    <file name="001.phpt" role="test" />
-    <file name="002.phpt" role="test" />
-    <file name="003.phpt" role="test" />
+    <file role="test" name="001.phpt"/>
+    <file role="test" name="002.phpt"/>
+    <file role="test" name="003.phpt"/>
    </dir>
-   <file name="ares.c" role="src" />
-   <file name="config.m4" role="src" />
-   <file name="CREDITS" role="doc" />
-   <file name="EXPERIMENTAL" role="doc" />
-   <file name="php_ares.h" role="src" />
   </dir>
  </contents>
  <dependencies>
@@ -62,5 +62,7 @@ Initial PECL release
   </required>
  </dependencies>
  <providesextension>ares</providesextension>
- <extsrcrelease />
+ <extsrcrelease>
+  <configureoption name="with-ares" prompt="whether to enable asynchronous resolver support" default="yes"/>
+ </extsrcrelease>
 </package>

@@ -3,8 +3,6 @@ dnl config.m4 for extension ares
 
 PHP_ARG_WITH(ares, for asynchronous resolver support,
 [  --with-ares             Include asynchronous resolver support])
-PHP_ARG_WITH(ares-lib, type of ares library (cares),
-[  --with-ares-lib         MIT/ares or CURL/cares], "cares", "cares")
 
 if test "$PHP_ARES" != "no"; then
 	PHP_ARES_DIR=
@@ -20,28 +18,34 @@ if test "$PHP_ARES" != "no"; then
 		AC_MSG_ERROR(could not find ares.h)
 	fi
 	
-	case "$PHP_ARES_LIB" in
-		MIT* [)]
-			PHP_ARES_LIB=ares
-			;;
-		ares [)]
-			;;
-		CURL* [)]
+	PHP_ARES_LIB=
+	PHP_CHECK_LIBRARY(cares, ares_init, [
 			PHP_ARES_LIB=cares
-			;;
-		cares [)]
-			;;
-		* [)]
-			PHP_ARES_LIB=cares
-			;;
-	esac
+		], [
+			PHP_CHECK_LIBRARY(ares, ares_init, [
+					PHP_ARES_LIB=ares
+				], [
+					PHP_ARES_LIB=unknown
+				], [
+					-L$PHP_ARES_DIR/$PHP_LIBDIR
+				]
+			)
+		], [
+			-L$PHP_ARES_DIR/$PHP_LIBDIR
+		]
+	)
+	AC_MSG_CHECKING(for libares/libcares)
+	AC_MSG_RESULT($PHP_ARES_LIB)
 	
-	if test $PHP_ARES_LIB = "cares"; then
+	if test $PHP_ARES_LIB = "unknown"; then
+		AC_MSG_ERROR(could neither find libares nor libcares)
+	elif test $PHP_ARES_LIB = "cares"; then
 		AC_DEFINE_UNQUOTED([PHP_ARES_LIBNAME], "c-ares (CURL)", [ ])
 		AC_DEFINE([PHP_ARES_EXPAND_LEN_TYPE], [long], [ ])
 	else
 		AC_DEFINE_UNQUOTED([PHP_ARES_LIBNAME], "ares (MIT)", [ ])
 		AC_DEFINE([PHP_ARES_EXPAND_LEN_TYPE], [int], [ ])
+		AC_DEFINE([HAVE_OLD_ARES_STRERROR], [1], [ ])
 	fi
 	
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_cancel, 
@@ -70,8 +74,10 @@ if test "$PHP_ARES" != "no"; then
 	)
 	
 	AC_CHECK_HEADERS([netdb.h unistd.h arpa/inet.h arpa/nameser.h])
+	
 	PHP_ADD_INCLUDE($PHP_ARES_DIR/include)
 	PHP_ADD_LIBRARY_WITH_PATH($PHP_ARES_LIB, $PHP_ARES_DIR/$PHP_LIBDIR, ARES_SHARED_LIBADD)
+	
 	PHP_SUBST(ARES_SHARED_LIBADD)
 	PHP_NEW_EXTENSION(ares, ares.c, $ext_shared)
 fi
