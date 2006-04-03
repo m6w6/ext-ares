@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE package SYSTEM "http://pear.php.net/dtd/package-1.0">
+<package version="1.0" packagerversion="1.4.6">
+ <name>ares</name>
+ <summary>Asynchronous Resolver</summary>
+ <description>Binding for the ares (MIT) or c-ares (CURL) library.
+ </description>
+ <maintainers>
+  <maintainer>
+   <user>mike</user>
+   <name>Michael Wallner</name>
+   <email>mike@php.net</email>
+   <role>lead</role>
+  </maintainer>
+  </maintainers>
+ <release>
+  <version>0.5.0</version>
+  <date>2006-04-03</date>
+  <license>BSD, revised</license>
+  <state>beta</state>
+  <notes>Initial PECL release
+  </notes>
+  <deps>
+   <dep type="php" rel="ge" version="4.3"/>
+   <dep type="php" rel="le" version="6.0"/>
+  </deps>
+  <filelist>
+   <dir name="tests">
+    <file role="test" name="001.phpt"/>
+    <file role="test" name="002.phpt"/>
+    <file role="test" name="003.phpt"/>
+   </dir> <!-- /tests -->
+   <file role="src" name="ares.c"/>
+   <file role="src" name="config.m4"/>
+   <file role="doc" name="CREDITS"/>
+   <file role="doc" name="EXPERIMENTAL"/>
+   <file role="src" name="php_ares.h"/>
+  </filelist>
+ </release>
+</package>
