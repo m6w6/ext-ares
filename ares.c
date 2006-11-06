@@ -456,7 +456,7 @@ local php_ares_options *php_ares_options_ctor(php_ares_options *options, HashTab
 				}
 			}
 			if (options->strct.ndomains) {
-				options->flags |= ARES_OPT_SERVERS;
+				options->flags |= ARES_OPT_DOMAINS;
 			}
 		}
 		if ((SUCCESS == zend_hash_find(ht, "lookups", sizeof("lookups"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_STRING)) {
