@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE package SYSTEM "http://pear.php.net/dtd/package-1.0">
-<package version="1.0" packagerversion="1.4.6">
+<package version="1.0" packagerversion="1.4.11">
  <name>ares</name>
  <summary>Asynchronous Resolver</summary>
  <description>Binding for the ares (MIT) or c-ares (CURL) library.
@@ -14,11 +14,14 @@
   </maintainer>
   </maintainers>
  <release>
-  <version>0.5.0</version>
-  <date>2006-04-03</date>
+  <version>0.6.0</version>
+  <date>2006-11-07</date>
   <license>BSD, revised</license>
   <state>beta</state>
-  <notes>Initial PECL release
+  <notes>+ Added missing ARES_AF_{INET|INET6} constants
+- Removed useless ARES_OPT_* constants
+* Fixed unrecogized &quot;domains&quot; options entry
+* Fixed byte order of ports: &quot;udp_port&quot;/&quot;tcp_port&quot; options, &quot;port&quot; argument of ares_getaddrinfo()
   </notes>
   <deps>
    <dep type="php" rel="ge" version="4.3"/>

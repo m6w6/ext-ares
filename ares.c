@@ -109,8 +109,8 @@ typedef union _php_ares_query_packet_data {
 	struct {
 		char *name;
 		int name_len;
-		int type;
-		int dnsclass;
+		long type;
+		long dnsclass;
 	} search;
 	struct {
 		char *name;
@@ -427,11 +427,11 @@ local php_ares_options *php_ares_options_ctor(php_ares_options *options, HashTab
 		}
 		if ((SUCCESS == zend_hash_find(ht, "udp_port", sizeof("udp_port"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
 			options->flags |= ARES_OPT_UDP_PORT;
-			options->strct.udp_port = Z_LVAL_PP(opt);
+			options->strct.udp_port = htons((unsigned short) Z_LVAL_PP(opt));
 		}
 		if ((SUCCESS == zend_hash_find(ht, "tcp_port", sizeof("tcp_port"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
 			options->flags |= ARES_OPT_TCP_PORT;
-			options->strct.tcp_port = Z_LVAL_PP(opt);
+			options->strct.tcp_port = htons((unsigned short) Z_LVAL_PP(opt));
 		}
 		if ((SUCCESS == zend_hash_find(ht, "servers", sizeof("servers"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_ARRAY) && (i = zend_hash_num_elements(Z_ARRVAL_PP(opt)))) {
 			options->strct.servers = ecalloc(i, sizeof(struct in_addr));
@@ -818,7 +818,7 @@ static PHP_FUNCTION(ares_mkquery)
 		RETURN_FALSE;
 	}
 	
-	if (ARES_SUCCESS != (err = ares_mkquery(name_str, dnsclass, type, id, rd, &query_str, &query_len))) {
+	if (ARES_SUCCESS != (err = ares_mkquery(name_str, dnsclass, type, id, rd, (unsigned char **) &query_str, &query_len))) {
 		RETURN_ARES_ERROR(err);
 	}
 	RETVAL_STRINGL(query_str, query_len, 1);
@@ -933,7 +933,7 @@ static PHP_FUNCTION(ares_gethostbyname)
 }
 /* }}} */
 
-/* {{{ proto resource ares_gethostbyaddr(resuorce ares, mixed callback, string address[, int family = AF_INET])
+/* {{{ proto resource ares_gethostbyaddr(resuorce ares, mixed callback, string address[, int family = ARES_AF_INET])
 	Get host by address */
 static PHP_FUNCTION(ares_gethostbyaddr)
 {
@@ -964,7 +964,7 @@ static PHP_FUNCTION(ares_gethostbyaddr)
 			sa = emalloc(sa_len = sizeof(struct in6_addr));
 			break;
 		default:
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Parameter family is neither AF_INET nor AF_INET6");
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Parameter family is neither ARES_AF_INET nor ARES_AF_INET6");
 			RETURN_FALSE;
 			break;
 	}
@@ -983,7 +983,7 @@ static PHP_FUNCTION(ares_gethostbyaddr)
 /* }}} */
 
 #ifdef HAVE_ARES_GETNAMEINFO
-/* {{{ proto resource ares_getnameinfo(resource ares, mixed callback, int flags, string addr[, int family[, int port]])
+/* {{{ proto resource ares_getnameinfo(resource ares, mixed callback, int flags, string addr[, int family = ARES_AF_INET[, int port = 0]])
 	Get name info */
 static PHP_FUNCTION(ares_getnameinfo)
 {
@@ -1011,9 +1011,9 @@ static PHP_FUNCTION(ares_getnameinfo)
 	RETVAL_TRUE;
 	switch (family) {
 		case AF_INET:
-			in = emalloc(sa_len = sizeof(struct sockaddr_in));
+			in = ecalloc(1, sa_len = sizeof(struct sockaddr_in));
 			in->sin_family = AF_INET;
-			in->sin_port = port;
+			in->sin_port = htons((unsigned short) port);
 			if (1 > inet_pton(in->sin_family, addr, &in->sin_addr)) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "inet_pton('%s') failed", addr);
 				RETVAL_FALSE;
@@ -1021,9 +1021,9 @@ static PHP_FUNCTION(ares_getnameinfo)
 			sa = (struct sockaddr *) in;
 			break;
 		case AF_INET6:
-			in6 = emalloc(sa_len = sizeof(struct sockaddr_in6));
+			in6 = ecalloc(1, sa_len = sizeof(struct sockaddr_in6));
 			in6->sin6_family = AF_INET6;
-			in6->sin6_port = port;
+			in6->sin6_port = htons((unsigned short) port);
 			if (1 > inet_pton(in6->sin6_family, addr, &in6->sin6_addr)) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "inet_pton('%s') failed", addr);
 				RETVAL_FALSE;
@@ -1432,7 +1432,7 @@ static PHP_FUNCTION(ares_expand_string)
 		RETURN_FALSE;
 	}
 	
-	if (ARES_SUCCESS != (err = ares_expand_string((const unsigned char *) buf_str, (const unsigned char *) buf_str, buf_len, &exp_str, &exp_len))) {
+	if (ARES_SUCCESS != (err = ares_expand_string((const unsigned char *) buf_str, (const unsigned char *) buf_str, buf_len, (unsigned char **) &exp_str, &exp_len))) {
 		RETURN_ARES_ERROR(err);
 	}
 	RETVAL_STRINGL(exp_str, exp_len, 1);
@@ -1508,15 +1508,11 @@ static PHP_MINIT_FUNCTION(ares)
 	REGISTER_LONG_CONSTANT("ARES_FLAG_NOALIASES", ARES_FLAG_NOALIASES, CONST_PERSISTENT|CONST_CS);
 	REGISTER_LONG_CONSTANT("ARES_FLAG_NOCHECKRESP", ARES_FLAG_NOCHECKRESP, CONST_PERSISTENT|CONST_CS);
 	
-	REGISTER_LONG_CONSTANT("ARES_OPT_FLAGS", ARES_OPT_FLAGS, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_TIMEOUT", ARES_OPT_TIMEOUT, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_TRIES", ARES_OPT_TRIES, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_NDOTS", ARES_OPT_NDOTS, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_UDP_PORT", ARES_OPT_UDP_PORT, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_TCP_PORT", ARES_OPT_TCP_PORT, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_SERVERS", ARES_OPT_SERVERS, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_DOMAINS", ARES_OPT_DOMAINS, CONST_PERSISTENT|CONST_CS);
-	REGISTER_LONG_CONSTANT("ARES_OPT_LOOKUPS", ARES_OPT_LOOKUPS, CONST_PERSISTENT|CONST_CS);
+	/*
+	 * Address Family Constants
+	 */
+	REGISTER_LONG_CONSTANT("ARES_AF_INET", AF_INET, CONST_PERSISTENT|CONST_CS);
+	REGISTER_LONG_CONSTANT("ARES_AF_INET6", AF_INET6, CONST_PERSISTENT|CONST_CS);
 	
 	/*
 	 * Name Info constants
