@@ -1734,6 +1734,7 @@ static PHP_MINFO_FUNCTION(ares)
 {
 	php_info_print_table_start();
 	php_info_print_table_header(2, "AsyncResolver support", "enabled");
+	php_info_print_table_row(2, "Version", PHP_ARES_VERSION);
 	php_info_print_table_end();
 	
 	php_info_print_table_start();
@@ -1830,7 +1831,7 @@ zend_module_entry ares_module_entry = {
 	NULL,
 	NULL,
 	PHP_MINFO(ares),
-	NO_VERSION_YET,
+	PHP_ARES_VERSION,
 	STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
