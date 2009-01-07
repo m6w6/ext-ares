@@ -41,13 +41,20 @@
 #define local inline
 
 #ifndef ZEND_ENGINE_2
-#	define zend_is_callable(a,b,c) 1
+#	define IS_CALLABLE(a,b,c) 1
 #	ifndef ZTS
 #		undef TSRMLS_SET_CTX
 #		define TSRMLS_SET_CTX
 #		undef TSRMLS_FETCH_FROM_CTX
 #		define TSRMLS_FETCH_FROM_CTX
 #	endif
+#endif
+#if (PHP_MAJOR_VERSION > 5) || ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3))
+#	define ADDREF(z) Z_ADDREF_P(z)
+#	define IS_CALLABLE(a,b,c) zend_is_callable((a), (b), (c) TSRMLS_CC)
+#else
+#	define ADDREF(z) ZVAL_ADDREF(z)
+#	define IS_CALLABLE(a,b,c) zend_is_callable((a), (b), (c))
 #endif
 
 #define PHP_ARES_LE_NAME "AsyncResolver"
@@ -280,7 +287,7 @@ local php_ares_query *php_ares_query_ctor(php_ares_query *query, php_ares_query_
 	query->error = -1;
 	
 	if (callback) {
-		ZVAL_ADDREF(callback);
+		ADDREF(callback);
 		query->callback = callback;
 	}
 	
@@ -499,7 +506,7 @@ local void php_ares_options_free(php_ares_options **options) /* {{{ */
 /* }}} */
 
 /* {{{ callbacks */
-static void php_ares_callback_func(void *aq, int status, unsigned char *abuf, int alen)
+static void php_ares_callback_func_old(void *aq, int status, unsigned char *abuf, int alen)
 {
 	php_ares_query *q = (php_ares_query *) aq;
 	zval *params[3], *retval;
@@ -534,7 +541,7 @@ static void php_ares_callback_func(void *aq, int status, unsigned char *abuf, in
 	}
 }
 
-static void php_ares_host_callback_func(void *aq, int status, struct hostent *hostent)
+static void php_ares_host_callback_func_old(void *aq, int status, struct hostent *hostent)
 {
 	php_ares_query *q = (php_ares_query *) aq;
 	zval *params[3], *retval;
@@ -570,7 +577,7 @@ static void php_ares_host_callback_func(void *aq, int status, struct hostent *ho
 }
 
 #ifdef HAVE_ARES_GETNAMEINFO
-static void php_ares_nameinfo_callback_func(void *aq, int status, char *node, char *service)
+static void php_ares_nameinfo_callback_func_old(void *aq, int status, char *node, char *service)
 {
 	php_ares_query *q = (php_ares_query *) aq;
 	zval *params[4], *retval;
@@ -641,10 +648,10 @@ static void php_ares_nameinfo_callback_func_new(void *aq, int status, int timeou
 #	endif
 
 #else
-#	define php_ares_callback_func php_ares_callback_func_new
-#	define php_ares_host_callback_func php_ares_host_callback_func_new
+#	define php_ares_callback_func php_ares_callback_func_old
+#	define php_ares_host_callback_func php_ares_host_callback_func_old
 #	ifdef HAVE_ARES_GETNAMEINFO
-#		define php_ares_nameinfo_callback_func php_ares_nameinfo_callback_func_new
+#		define php_ares_nameinfo_callback_func php_ares_nameinfo_callback_func_old
 #	endif
 #endif
 /* }}} */
@@ -871,7 +878,7 @@ static PHP_FUNCTION(ares_search)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !zend_is_callable(cb, 0, NULL)) {
+	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 	
@@ -898,7 +905,7 @@ static PHP_FUNCTION(ares_query)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !zend_is_callable(cb, 0, NULL)) {
+	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 		
@@ -924,7 +931,7 @@ static PHP_FUNCTION(ares_send)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !zend_is_callable(cb, 0, NULL)) {
+	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 	
@@ -951,7 +958,7 @@ static PHP_FUNCTION(ares_gethostbyname)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !zend_is_callable(cb, 0, NULL)) {
+	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 	
@@ -980,7 +987,7 @@ static PHP_FUNCTION(ares_gethostbyaddr)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !zend_is_callable(cb, 0, NULL)) {
+	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
 		PHP_ARES_CB_ERROR("second");
 		RETURN_FALSE;
 	}
@@ -1032,7 +1039,7 @@ static PHP_FUNCTION(ares_getnameinfo)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !zend_is_callable(cb, 0, NULL)) {
+	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
 		PHP_ARES_CB_ERROR("second");
 		RETURN_FALSE;
 	}
