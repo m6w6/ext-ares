@@ -18,6 +18,7 @@ if test "$PHP_ARES" != "no"; then
 		AC_MSG_ERROR(could not find ares.h)
 	fi
 	
+	PHP_ADD_LIBRARY(rt, ARES_SHARED_LIBADD)
 	PHP_ARES_LIB=
 	PHP_CHECK_LIBRARY(cares, ares_init, [
 			PHP_ARES_LIB=cares
@@ -56,14 +57,6 @@ if test "$PHP_ARES" != "no"; then
 		[AC_DEFINE([HAVE_ARES_GETNAMEINFO], [1], [ ])], [ ], 
 		[-L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
-	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_expand_string, 
-		[AC_DEFINE([HAVE_ARES_EXPAND_STRING], [1], [ ])], [ ], 
-		[-L$PHP_ARES_DIR/$PHP_LIBDIR]
-	)
-	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_parse_aaaa_reply, 
-		[AC_DEFINE([HAVE_ARES_PARSE_AAAA_REPLY], [1], [ ])], [ ], 
-		[-L$PHP_ARES_DIR/$PHP_LIBDIR]
-	)
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_getsock, 
 		[AC_DEFINE([HAVE_ARES_GETSOCK], [1], [ ])], [ ], 
 		[-L$PHP_ARES_DIR/$PHP_LIBDIR]
@@ -72,6 +65,31 @@ if test "$PHP_ARES" != "no"; then
 		[AC_DEFINE([HAVE_ARES_VERSION], [1], [ ])], [ ], 
 		[-L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
+	
+	
+	dnl check new c-ares API
+	
+	save_LIBS=$LIBS
+	save_CFLAGS=$CFLAGS
+	LIBS="-L $PHP_ARES_DIR/$PHP_LIBDIR -l $PHP_ARES_LIB"
+	CFLAGS="-I$PHP_ARES_DIR/include -pedantic-errors"
+	
+	AC_MSG_CHECKING(for new c-ares callback API)
+	AC_TRY_COMPILE(
+		[#include <ares.h>
+		], [
+			ares_search(0, 0, 0, 0, (void (*)(void *, int, int, unsigned char *, int)) 0, 0);
+		], [
+			AC_MSG_RESULT(yes)
+			AC_DEFINE([PHP_ARES_NEW_CALLBACK_API], [1], [ ])
+		], [
+			AC_MSG_RESULT(no)
+			AC_DEFINE([PHP_ARES_NEW_CALLBACK_API], [0], [ ])
+		]
+	)
+	
+	LIBS=$save_LIBS
+	CFLAGS=$save_CFLAGS
 	
 	AC_CHECK_HEADERS([netdb.h unistd.h arpa/inet.h arpa/nameser.h])
 	
