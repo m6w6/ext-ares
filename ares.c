@@ -618,6 +618,35 @@ static void php_ares_nameinfo_callback_func(void *aq, int status, char *node, ch
 	}
 }
 #endif
+
+#if PHP_ARES_NEW_CALLBACK_API
+#	define php_ares_callback_func php_ares_callback_func_new
+static void php_ares_callback_func_new(void *aq, int status, int timeouts, unsigned char *abuf, int alen)
+{
+	php_ares_callback_func_old(aq, status, abuf, alen);
+}
+
+#	define php_ares_host_callback_func php_ares_host_callback_func_new
+static void php_ares_host_callback_func_new(void *aq, int status, int timeouts, struct hostent *hostent)
+{
+	php_ares_host_callback_func_old(aq, status, hostent);
+}
+
+#	ifdef HAVE_ARES_GETNAMEINFO
+#		define php_ares_nameinfo_callback_func php_ares_nameinfo_callback_func_new
+static void php_ares_nameinfo_callback_func_new(void *aq, int status, int timeouts, char *node, char *service)
+{
+	php_ares_nameinfo_callback_func_old(aq, status, node, service);
+}
+#	endif
+
+#else
+#	define php_ares_callback_func php_ares_callback_func_new
+#	define php_ares_host_callback_func php_ares_host_callback_func_new
+#	ifdef HAVE_ARES_GETNAMEINFO
+#		define php_ares_nameinfo_callback_func php_ares_nameinfo_callback_func_new
+#	endif
+#endif
 /* }}} */
 
 local struct timeval *php_ares_timeout(php_ares *ares, long max_timeout, struct timeval *tv_buf) /* {{{ */
@@ -1330,117 +1359,6 @@ static PHP_FUNCTION(ares_fds)
 }
 /* }}} */
 
-
-/* {{{ proto array ares_parse_a_reply(string reply)
-	Parse an A reply */
-static PHP_FUNCTION(ares_parse_a_reply)
-{
-	char *buf;
-	int len, err;
-	struct hostent *hostent;
-	
-	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &buf, &len)) {
-		RETURN_FALSE;
-	}
-	
-	if (ARES_SUCCESS != (err = ares_parse_a_reply((const unsigned char *) buf, len, &hostent))) {
-		RETURN_ARES_ERROR(err);
-	}
-	
-	object_init(return_value);
-	php_ares_hostent_to_struct(hostent, HASH_OF(return_value));
-	ares_free_hostent(hostent);
-}
-/* }}} */
-
-#ifdef HAVE_ARES_PARSE_AAAA_REPLY
-/* {{{ proto array ares_parse_aaaa_reply(string reply)
-	Parse an AAAA reply */
-static PHP_FUNCTION(ares_parse_aaaa_reply)
-{
-	char *buf;
-	int len, err;
-	struct hostent *hostent;
-	
-	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &buf, &len)) {
-		RETURN_FALSE;
-	}
-	
-	if (ARES_SUCCESS != (err = ares_parse_aaaa_reply((const unsigned char *) buf, len, &hostent))) {
-		RETURN_ARES_ERROR(err);
-	}
-	
-	object_init(return_value);
-	php_ares_hostent_to_struct(hostent, HASH_OF(return_value));
-	ares_free_hostent(hostent);
-}
-/* }}} */
-#endif
-
-/* {{{ proto array ares_parse_ptr_reply(string reply)
-	Parse a PTR reply */
-static PHP_FUNCTION(ares_parse_ptr_reply)
-{
-	char *buf;
-	int len, err;
-	struct hostent *hostent;
-	
-	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &buf, &len)) {
-		RETURN_FALSE;
-	}
-	
-	if (ARES_SUCCESS != (err = ares_parse_ptr_reply((const unsigned char *) buf, len, NULL, 0, 0, &hostent))) {
-		RETURN_ARES_ERROR(err);
-	}
-	
-	object_init(return_value);
-	php_ares_hostent_to_struct(hostent, HASH_OF(return_value));
-	ares_free_hostent(hostent);
-}
-/* }}} */
-
-/* {{{ proto string ares_expand_name(string name)
-	Expand a DNS encoded name into a human readable dotted string */
-static PHP_FUNCTION(ares_expand_name)
-{
-	char *name_str, *exp_str;
-	int name_len,err;
-	PHP_ARES_EXPAND_LEN_TYPE exp_len;
-	
-	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name_str, &name_len)) {
-		RETURN_FALSE;
-	}
-	
-	if (ARES_SUCCESS != (err = ares_expand_name((const unsigned char *) name_str, (const unsigned char *) name_str, name_len, &exp_str, &exp_len))) {
-		RETURN_ARES_ERROR(err);
-	}
-	RETVAL_STRINGL(exp_str, exp_len, 1);
-	ares_free_string(exp_str);
-}
-/* }}} */
-
-#ifdef HAVE_ARES_EXPAND_STRING
-/* {{{ proto string ares_expand_string(string buf)
-	Expand a DNS encoded string into a human readable */
-static PHP_FUNCTION(ares_expand_string)
-{
-	char *buf_str, *exp_str;
-	int buf_len, err;
-	PHP_ARES_EXPAND_LEN_TYPE exp_len;
-	
-	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &buf_str, &buf_len)) {
-		RETURN_FALSE;
-	}
-	
-	if (ARES_SUCCESS != (err = ares_expand_string((const unsigned char *) buf_str, (const unsigned char *) buf_str, buf_len, (unsigned char **) &exp_str, &exp_len))) {
-		RETURN_ARES_ERROR(err);
-	}
-	RETVAL_STRINGL(exp_str, exp_len, 1);
-	ares_free_string(exp_str);
-}
-/* }}} */
-#endif
-
 static ZEND_RSRC_DTOR_FUNC(php_ares_le_dtor)
 {
 	php_ares *ares = (php_ares *) rsrc->ptr;
@@ -1808,15 +1726,6 @@ zend_function_entry ares_functions[] = {
 	PHP_FE(ares_select, ai_ares_select)
 	PHP_FE(ares_fds, ai_ares_fds)
 	PHP_FE(ares_timeout, NULL)
-	PHP_FE(ares_parse_a_reply, NULL)
-#ifdef HAVE_ARES_PARSE_AAAA_REPLY
-	PHP_FE(ares_parse_aaaa_reply, NULL)
-#endif
-	PHP_FE(ares_parse_ptr_reply, NULL)
-	PHP_FE(ares_expand_name, NULL)
-#ifdef HAVE_ARES_EXPAND_STRING
-	PHP_FE(ares_expand_string, NULL)
-#endif
 	{NULL, NULL, NULL}
 };
 /* }}} */
