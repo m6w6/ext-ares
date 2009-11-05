@@ -1,47 +1,71 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE package SYSTEM "http://pear.php.net/dtd/package-1.0">
-<package version="1.0" packagerversion="1.4.11">
+<?xml version="1.0" encoding="UTF-8"?>
+<package
+		packagerversion="1.4.6" 
+		version="2.0" 
+		xmlns="http://pear.php.net/dtd/package-2.0" 
+		xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" 
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+		xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0
+			http://pear.php.net/dtd/tasks-1.0.xsd
+			http://pear.php.net/dtd/package-2.0
+			http://pear.php.net/dtd/package-2.0.xsd">
  <name>ares</name>
+ <channel>pecl.php.net</channel>
  <summary>Asynchronous Resolver</summary>
- <description>Binding for the ares (MIT) or c-ares (CURL) library.
+ <description>
+  Binding for the ares (MIT) or c-ares (CURL) library.
  </description>
- <maintainers>
-  <maintainer>
-   <user>mike</user>
-   <name>Michael Wallner</name>
-   <email>mike@php.net</email>
-   <role>lead</role>
-  </maintainer>
-  </maintainers>
- <release>
-  <version>0.6.0</version>
-  <date>2006-11-07</date>
-  <license>BSD, revised</license>
-  <state>beta</state>
-  <notes>+ Added missing ARES_AF_{INET|INET6} constants
+ <lead>
+  <name>Michael Wallner</name>
+  <user>mike</user>
+  <email>mike@php.net</email>
+  <active>yes</active>
+ </lead>
+ <date>2006-11-07</date>
+ <version>
+  <release>0.6.0</release>
+  <api>0.6.0</api>
+ </version>
+ <stability>
+  <release>beta</release>
+  <api>beta</api>
+ </stability>
+ <license>BSD, revised</license>
+ <notes><![CDATA[
++ Added missing ARES_AF_{INET|INET6} constants
 - Removed useless ARES_OPT_* constants
-* Fixed unrecogized &quot;domains&quot; options entry
-* Fixed byte order of ports: &quot;udp_port&quot;/&quot;tcp_port&quot; options, &quot;port&quot; argument of ares_getaddrinfo()
-  </notes>
-  <deps>
-   <dep type="php" rel="ge" version="4.3"/>
-   <dep type="php" rel="le" version="6.0"/>
-  </deps>
-  <configureoptions>
-   <configureoption name="with-ares" default="yes" prompt="whether to enable asynchronous resolver support"/>
-  </configureoptions>
-  <filelist>
+* Fixed unrecogized "domains" options entry
+* Fixed byte order of ports: "udp_port"/"tcp_port" options, "port" argument of ares_getaddrinfo()
+]]></notes>
+ <contents>
+  <dir name="/">
+   <file role="doc" name="CREDITS"/>
+   <file role="doc" name="EXPERIMENTAL"/>
+   <file role="doc" name="LICENSE"/>
+   <file role="src" name="config.m4"/>
+   <file role="src" name="ares.c"/>
+   <file role="src" name="php_ares.h"/>
    <dir name="tests">
     <file role="test" name="001.phpt"/>
     <file role="test" name="002.phpt"/>
     <file role="test" name="003.phpt"/>
-   </dir> <!-- /tests -->
-   <file role="src" name="ares.c"/>
-   <file role="src" name="config.m4"/>
-   <file role="doc" name="CREDITS"/>
-   <file role="doc" name="EXPERIMENTAL"/>
-   <file role="doc" name="LICENSE"/>
-   <file role="src" name="php_ares.h"/>
-  </filelist>
- </release>
+   </dir>
+  </dir>
+ </contents>
+ <dependencies>
+  <required>
+   <php>
+    <min>4.3</min>
+    <max>6.0</max>
+    <exclude>6.0.0</exclude>
+   </php>
+   <pearinstaller>
+    <min>1.4.1</min>
+   </pearinstaller>
+  </required>
+ </dependencies>
+ <providesextension>ares</providesextension>
+ <extsrcrelease>
+  <configureoption name="with-ares" prompt="whether to enable asynchronous resolver support" default="yes"/>
+ </extsrcrelease>
 </package>
