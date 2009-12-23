@@ -737,17 +737,6 @@ local int php_ares_parse(const unsigned char *abuf, int alen, zval *result TSRML
 
 		if (entry) {
 			add_next_index_zval(result, entry);
-			/*
-			if (SUCCESS == zend_hash_find(Z_ARRVAL_P(result), php_ares_T_names[type], strlen(php_ares_T_names[type])+1, (void *) &entry_ptr)) {
-				add_next_index_zval(*entry_ptr, entry);
-			} else {
-				zval *array;
-				
-				MAKE_STD_ZVAL(array);
-				array_init(array);
-				add_next_index_zval(array, entry);
-				add_assoc_zval(result, php_ares_T_names[type], array);
-			}*/
 		}
 	}
 
