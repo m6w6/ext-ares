@@ -26,9 +26,7 @@ if test "$PHP_ARES" != "no"; then
 	PHP_ARES_LIB=
 	PHP_CHECK_LIBRARY(cares, ares_init, [
 			PHP_ARES_LIB=cares
-			echo $LDFLAGS
 		], [
-			echo $LDFLAGS
 			PHP_CHECK_LIBRARY(ares, ares_init, [
 					PHP_ARES_LIB=ares
 				], [
@@ -67,8 +65,16 @@ if test "$PHP_ARES" != "no"; then
 		[AC_DEFINE([HAVE_ARES_GETSOCK], [1], [ ])], [ ], 
 		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
-	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_version, 
-		[AC_DEFINE([HAVE_ARES_VERSION], [1], [ ])], [ ], 
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_version,
+		[AC_DEFINE([HAVE_ARES_VERSION], [1], [ ])], [ ],
+		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+	)
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_library_init,
+		[AC_DEFINE([HAVE_ARES_LIBRARY_INIT], [1], [ ])], [ ],
+		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+	)
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_library_cleanup,
+		[AC_DEFINE([HAVE_ARES_LIBRARY_CLEANUP], [1], [ ])], [ ],
 		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
 	
@@ -97,7 +103,7 @@ if test "$PHP_ARES" != "no"; then
 	LIBS=$save_LIBS
 	CFLAGS=$save_CFLAGS
 	
-	AC_CHECK_HEADERS([netdb.h unistd.h arpa/inet.h arpa/nameser.h])
+	AC_CHECK_HEADERS([netdb.h unistd.h arpa/inet.h arpa/nameser.h arpa/nameser_compat.h])
 	
 	PHP_ADD_INCLUDE($PHP_ARES_DIR/include)
 	PHP_ADD_LIBRARY_WITH_PATH($PHP_ARES_LIB, $PHP_ARES_DIR/$PHP_LIBDIR, ARES_SHARED_LIBADD)

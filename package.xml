@@ -21,10 +21,10 @@
   <email>mike@php.net</email>
   <active>yes</active>
  </lead>
- <date>2006-11-07</date>
+ <date>2009-12-23</date>
  <version>
-  <release>0.6.0</release>
-  <api>0.6.0</api>
+  <release>0.7.0</release>
+  <api>0.7.0</api>
  </version>
  <stability>
   <release>beta</release>
@@ -32,10 +32,7 @@
  </stability>
  <license>BSD, revised</license>
  <notes><![CDATA[
-+ Added missing ARES_AF_{INET|INET6} constants
-- Removed useless ARES_OPT_* constants
-* Fixed unrecogized "domains" options entry
-* Fixed byte order of ports: "udp_port"/"tcp_port" options, "port" argument of ares_getaddrinfo()
++ Implemented reply parsers for A, NS, PTR, CNAME, MX, SOA, SRV, TXT messages
 ]]></notes>
  <contents>
   <dir name="/">
