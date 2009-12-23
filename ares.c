@@ -1649,7 +1649,7 @@ static ZEND_RSRC_DTOR_FUNC(php_ares_query_le_dtor)
 static PHP_MINIT_FUNCTION(ares)
 {
 #ifdef HAVE_ARES_LIBRARY_INIT
-	if (ARES_SUCCESS != ares_library_init()) {
+	if (ARES_SUCCESS != ares_library_init(ARES_LIB_INIT_ALL)) {
 		return FAILURE;
 	}
 #endif
