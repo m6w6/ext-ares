@@ -589,6 +589,17 @@ local php_ares_options *php_ares_options_ctor(php_ares_options *options, HashTab
 			options->flags |= ARES_OPT_LOOKUPS;
 			options->strct.lookups = estrdup(Z_STRVAL_PP(opt));
 		}
+#ifdef ARES_OPT_ROTATE
+		if ((SUCCESS == zend_hash_find(ht, "rotate", sizeof("rotate"), (void *) &opt)) && i_zend_is_true(*opt)) {
+			options->flags |= ARES_OPT_ROTATE;
+		}
+#endif
+#ifdef ARES_OPT_EDNSPSZ
+		if ((SUCCESS == zend_hash_find(ht, "ednspsz", sizeof("ednspsz"), (void *) &opt)) && is_numeric(opt, &lval)) {
+			options->flags |= ARES_OPT_EDNSPSZ;
+			options->strct.ednspsz = lval;
+		}
+#endif
 	}
 	
 	return options;
