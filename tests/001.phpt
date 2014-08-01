@@ -1,7 +1,7 @@
 --TEST--
 ares
 --SKIPIF--
-<?php if (!extension_loaded("ares")) print "skip"; ?>
+<?php if (!extension_loaded("ares") || getenv("SKIP_ONLINE_TESTS")) print "skip"; ?>
 --FILE--
 <?php 
 echo "-TEST\n";
@@ -14,9 +14,9 @@ function cb()
 
 $a = ares_init();
 
-ares_gethostbyname($a, "cb", "php.net");
-ares_gethostbyaddr($a, "cb", "66.163.161.117");
-ares_getnameinfo($a, "cb", ARES_NI_TCP, "66.163.161.117");
+ares_gethostbyname($a, "cb", "a.resolvers.Level3.net");
+ares_gethostbyaddr($a, "cb", "4.2.2.2");
+ares_getnameinfo($a, "cb", ARES_NI_TCP, "4.2.2.3");
 
 ares_process_all($a);
 ares_destroy($a);
@@ -31,7 +31,7 @@ Array
     [1] => 0
     [2] => stdClass Object
         (
-            [name] => php.net
+            [name] => a.resolvers.Level3.net
             [aliases] => Array
                 (
                 )
@@ -39,7 +39,7 @@ Array
             [addrtype] => 2
             [addrlist] => Array
                 (
-                    [0] => 66.163.161.117
+                    [0] => 4.2.2.1
                 )
 
         )
@@ -51,15 +51,16 @@ Array
     [1] => 0
     [2] => stdClass Object
         (
-            [name] => y2.php.net
+            [name] => b.resolvers.Level3.net
             [aliases] => Array
                 (
+                    [0] => b.resolvers.Level3.net
                 )
 
             [addrtype] => 2
             [addrlist] => Array
                 (
-                    [0] => 66.163.161.117
+                    [0] => 4.2.2.2
                 )
 
         )
@@ -69,7 +70,7 @@ Array
 (
     [0] => Resource id #%d
     [1] => 0
-    [2] => y2.php.net
+    [2] => c.resolvers.level3.net
     [3] => 
 )
 Done

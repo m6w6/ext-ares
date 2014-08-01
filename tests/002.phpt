@@ -1,7 +1,7 @@
 --TEST--
 ares
 --SKIPIF--
-<?php if (!extension_loaded("ares")) print "skip"; ?>
+<?php if (!extension_loaded("ares") || getenv("SKIP_ONLINE_TESTS")) print "skip"; ?>
 --FILE--
 <?php
 echo "-TEST\n";
@@ -9,7 +9,7 @@ echo "-TEST\n";
 $a = ares_init();
 $q = array();
 
-foreach (array("at", "de", "uk", "us", "ch", "ru") as $tld) {
+foreach (array("at", "de", "uk") as $tld) {
 	$q[] = ares_gethostbyname($a, null, "$tld.php.net");
 }
 
@@ -29,52 +29,35 @@ echo "Done\n";
 %sTEST
 stdClass Object
 (
-    [name] => gd.tuwien.ac.at
+    [name] => %s
     [aliases] => Array
         (
-            [0] => at.php.net
         )
 
     [addrtype] => 2
     [addrlist] => Array
         (
-            [0] => 192.35.244.50
+            %a
         )
 
 )
 stdClass Object
 (
-    [name] => php3.globe.de
+    [name] => %s
     [aliases] => Array
         (
-            [0] => de.php.net
         )
 
     [addrtype] => 2
     [addrlist] => Array
         (
-            [0] => 212.124.37.9
+            %a
         )
 
 )
 stdClass Object
 (
-    [name] => php.networkedsystems.co.uk
-    [aliases] => Array
-        (
-            [0] => uk.php.net
-        )
-
-    [addrtype] => 2
-    [addrlist] => Array
-        (
-            [0] => 85.116.4.7
-        )
-
-)
-stdClass Object
-(
-    [name] => ch.php.net
+    [name] => %s
     [aliases] => Array
         (
         )
@@ -82,22 +65,7 @@ stdClass Object
     [addrtype] => 2
     [addrlist] => Array
         (
-            [0] => 128.178.77.24
-        )
-
-)
-stdClass Object
-(
-    [name] => php.directnet.ru
-    [aliases] => Array
-        (
-            [0] => ru.php.net
-        )
-
-    [addrtype] => 2
-    [addrlist] => Array
-        (
-            [0] => 195.222.164.18
+            %a
         )
 
 )

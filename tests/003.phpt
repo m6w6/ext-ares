@@ -1,7 +1,7 @@
 --TEST--
 ares
 --SKIPIF--
-<?php if (!extension_loaded("ares")) print "skip"; ?>
+<?php if (!extension_loaded("ares") || getenv("SKIP_ONLINE_TESTS")) print "skip"; ?>
 --FILE--
 <?php
 echo "-TEST\n";
@@ -9,7 +9,7 @@ echo "-TEST\n";
 $a = ares_init();
 $q = array();
 
-foreach (array("at", "de", "uk", "us", "ch", "ru") as $tld) {
+foreach (array("at", "de", "uk", "us", "ch") as $tld) {
 	$q[] = ares_gethostbyname($a, null, "$tld.php.net");
 }
 
@@ -96,21 +96,6 @@ stdClass Object
     [gethostbyname] => stdClass Object
         (
             [name] => ch.php.net
-            [family] => 2
-        )
-
-    [gethostbyaddr] => 
-    [getnameinfo] => 
-)
-stdClass Object
-(
-    [type] => 3
-    [search] => 
-    [query] => 
-    [send] => 
-    [gethostbyname] => stdClass Object
-        (
-            [name] => ru.php.net
             [family] => 2
         )
 
