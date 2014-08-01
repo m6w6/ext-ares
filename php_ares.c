@@ -1990,10 +1990,12 @@ static PHP_MINIT_FUNCTION(ares)
 #ifdef T_OPT
 	/* (41)  EDNS0 option (meta-RR)  */
 	 REGISTER_LONG_CONSTANT("ARES_T_OPT", T_OPT, CONST_CS|CONST_PERSISTENT);
+#endif
 #ifdef T_TSIG
 	/* (250)  Transaction signature.  */
 	REGISTER_LONG_CONSTANT("ARES_T_TSIG", T_TSIG, CONST_CS|CONST_PERSISTENT);
-#endif T_IXFR
+#endif
+#ifdef T_IXFR
 	/* (251)  Incremental zone transfer.  */
 	REGISTER_LONG_CONSTANT("ARES_T_IXFR", T_IXFR, CONST_CS|CONST_PERSISTENT);
 #endif
