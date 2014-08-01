@@ -32,7 +32,9 @@
  </stability>
  <license>BSD, revised</license>
  <notes><![CDATA[
-* Fixed build
+* Fixed bug #63131 (OSX support for PECL ares)
++ Added support for options and flags up to c-ares 1.10
++ Added ares_set_local_{dev,ip4,ip6} functions
 ]]></notes>
  <contents>
   <dir name="/">
