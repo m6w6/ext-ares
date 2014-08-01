@@ -1113,6 +1113,65 @@ static PHP_FUNCTION(ares_init)
 }
 /* }}} */
 
+#ifdef HAVE_ARES_SET_LOCAL_DEV
+/* {{{ proto void ares_set_local_dev(resource ares, string dev)
+	 Set the local interface name to bind to. */
+static PHP_FUNCTION(ares_set_local_dev)
+{
+	zval *rsrc;
+	char *dev_str = NULL;
+	int dev_len = 0;
+	php_ares *ares;
+
+	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs!", &rsrc, &dev_str, &dev_len)) {
+		RETURN_FALSE;
+	}
+	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
+
+	ares_set_local_dev(ares->channel, dev_str);
+}
+#endif
+
+#ifdef HAVE_ARES_SET_LOCAL_IP4
+/* {{{ proto void ares_set_local_ip4(resource ares, int addr)
+	 Set the local IPv4 address to bind to. */
+static PHP_FUNCTION(ares_set_local_ip4)
+{
+	zval *rsrc;
+	long ip4_num;
+	php_ares *ares;
+
+	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &rsrc, &ip4_num)) {
+		RETURN_FALSE;
+	}
+	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
+
+	ares_set_local_ip4(ares->channel, (unsigned int) ip4_num);
+}
+#endif
+
+#ifdef HAVE_ARES_SET_LOCAL_IP6
+/* {{{ proto void ares_set_local_ip6(resource ares, string addr128bit)
+	 Set the local IPv6 address to bind to. */
+static PHP_FUNCTION(ares_set_local_ip6)
+{
+	zval *rsrc;
+	char *ip6_str;
+	int ip6_len;
+	php_ares *ares;
+
+	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &rsrc, &ip6_str, &ip6_len)) {
+		RETURN_FALSE;
+	}
+	if (16 != ip6_len) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Binary IPv6 address string must be exactly 16 bytes long");
+	}
+	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
+
+	ares_set_local_ip6(ares->channel, (unsigned char *) ip6_str);
+}
+#endif
+
 /* {{{ proto void ares_destroy(resource ares)
 	Destroy the ares handle */
 static PHP_FUNCTION(ares_destroy)
