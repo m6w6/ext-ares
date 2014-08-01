@@ -1093,7 +1093,7 @@ static PHP_FUNCTION(ares_init)
 	php_ares *ares = NULL;
 	int err;
 	
-	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|a!", &opt_array)) {
+	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|a/!", &opt_array)) {
 		RETURN_FALSE;
 	}
 	
