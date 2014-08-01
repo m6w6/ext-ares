@@ -1,7 +1,7 @@
 dnl $Id$
 dnl config.m4 for extension ares
 
-PHP_ARG_WITH(ares, for asynchronous resolver support,
+PHP_ARG_WITH(ares, [enable asynchronous resolver support],
 [  --with-ares             Include asynchronous resolver support])
 
 if test "$PHP_ARES" != "no"; then
@@ -18,29 +18,45 @@ if test "$PHP_ARES" != "no"; then
 		AC_MSG_ERROR(could not find ares.h)
 	fi
 	
-	dnl ##########
-	dnl newer versions of libcares need -lrt
-	dnl ##########
-	PHP_ADD_LIBRARY(rt, 1, ARES_SHARED_LIBADD)
-	
 	PHP_ARES_LIB=
+	PHP_ARES_LIBADD=
 	PHP_CHECK_LIBRARY(cares, ares_init, [
 			PHP_ARES_LIB=cares
 		], [
 			PHP_CHECK_LIBRARY(ares, ares_init, [
 					PHP_ARES_LIB=ares
 				], [
-					PHP_ARES_LIB=unknown
+					PHP_CHECK_LIBRARY(cares, ares_init, [
+						PHP_ARES_LIB=cares
+						PHP_ARES_LIBADD=rt
+					], [
+						PHP_CHECK_LIBRARY(ares, ares_init, [
+							PHP_ARES_LIB=ares
+							PHP_ARES_LIBADD=rt
+						], [
+							PHP_AREES_LIB=unknown
+						], [
+							-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR
+						])
+					], [
+						-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR
+					])
 				], [
-					-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR
+					-L$PHP_ARES_DIR/$PHP_LIBDIR
 				]
 			)
 		], [
-			-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR
+			-L$PHP_ARES_DIR/$PHP_LIBDIR
 		]
 	)
 	AC_MSG_CHECKING(for libares/libcares)
 	AC_MSG_RESULT($PHP_ARES_LIB)
+	
+	if test "x$PHP_ARES_LIBADD" != "x"; then
+		PHP_ADD_LIBRARY(PHP_ARES_LIBADD, 1, ARES_SHARED_LIBADD)
+		dnl for later use
+		PHP_ARES_LIBADD="-l$PHP_ARES_LIBADD"
+	fi
 	
 	if test $PHP_ARES_LIB = "unknown"; then
 		AC_MSG_ERROR(could neither find libares nor libcares)
@@ -55,27 +71,39 @@ if test "$PHP_ARES" != "no"; then
 	
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_cancel, 
 		[AC_DEFINE([HAVE_ARES_CANCEL], [1], [ ])], [ ], 
-		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_getnameinfo, 
 		[AC_DEFINE([HAVE_ARES_GETNAMEINFO], [1], [ ])], [ ], 
-		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_getsock, 
 		[AC_DEFINE([HAVE_ARES_GETSOCK], [1], [ ])], [ ], 
-		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_version,
 		[AC_DEFINE([HAVE_ARES_VERSION], [1], [ ])], [ ],
-		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_library_init,
 		[AC_DEFINE([HAVE_ARES_LIBRARY_INIT], [1], [ ])], [ ],
-		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
 	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_library_cleanup,
 		[AC_DEFINE([HAVE_ARES_LIBRARY_CLEANUP], [1], [ ])], [ ],
-		[-lrt -L$PHP_ARES_DIR/$PHP_LIBDIR]
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
+	)
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_set_local_dev,
+		[AC_DEFINE([HAVE_ARES_SET_LOCAL_DEV], [1], [ ])], [ ],
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
+	)
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_set_local_ip4,
+		[AC_DEFINE([HAVE_ARES_SET_LOCAL_IP4], [1], [ ])], [ ],
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
+	)
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_set_local_ip6,
+		[AC_DEFINE([HAVE_ARES_SET_LOCAL_IP6], [1], [ ])], [ ],
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
 	
 	dnl ##########
@@ -83,7 +111,7 @@ if test "$PHP_ARES" != "no"; then
 	dnl ##########
 	save_LIBS=$LIBS
 	save_CFLAGS=$CFLAGS
-	LDFLIBS="-L$PHP_ARES_DIR/$PHP_LIBDIR -l$PHP_ARES_LIB -lrt"
+	LIBS="-L$PHP_ARES_DIR/$PHP_LIBDIR -l$PHP_ARES_LIB $PHP_ARES_LIBADD"
 	CFLAGS="-I$PHP_ARES_DIR/include -Werror"
 	
 	AC_MSG_CHECKING(for new c-ares callback API)
@@ -109,5 +137,5 @@ if test "$PHP_ARES" != "no"; then
 	PHP_ADD_LIBRARY_WITH_PATH($PHP_ARES_LIB, $PHP_ARES_DIR/$PHP_LIBDIR, ARES_SHARED_LIBADD)
 	
 	PHP_SUBST(ARES_SHARED_LIBADD)
-	PHP_NEW_EXTENSION(ares, ares.c, $ext_shared)
+	PHP_NEW_EXTENSION(ares, php_ares.c, $ext_shared)
 fi

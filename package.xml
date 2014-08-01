@@ -23,8 +23,8 @@
  </lead>
  <date>2009-12-23</date>
  <version>
-  <release>0.7.0</release>
-  <api>0.7.0</api>
+  <release>0.8.0</release>
+  <api>0.8.0</api>
  </version>
  <stability>
   <release>beta</release>
@@ -32,7 +32,7 @@
  </stability>
  <license>BSD, revised</license>
  <notes><![CDATA[
-+ Implemented reply parsers for A, NS, PTR, CNAME, MX, SOA, SRV, TXT messages
+* Fixed build
 ]]></notes>
  <contents>
   <dir name="/">
@@ -40,7 +40,7 @@
    <file role="doc" name="EXPERIMENTAL"/>
    <file role="doc" name="LICENSE"/>
    <file role="src" name="config.m4"/>
-   <file role="src" name="ares.c"/>
+   <file role="src" name="php_ares.c"/>
    <file role="src" name="php_ares.h"/>
    <dir name="tests">
     <file role="test" name="001.phpt"/>

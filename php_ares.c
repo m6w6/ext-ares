@@ -41,10 +41,10 @@
 #	include <arpa/nameser_compat.h>
 #endif
 
-#define local inline
+#define local static inline
 
 #ifndef ZEND_ENGINE_2
-#	define IS_CALLABLE(a,b,c) 1
+#	define PHP_ARES_IS_CALLABLE(a,b,c) 1
 #	ifndef ZTS
 #		undef TSRMLS_SET_CTX
 #		define TSRMLS_SET_CTX
@@ -54,10 +54,10 @@
 #endif
 #if (PHP_MAJOR_VERSION > 5) || ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3))
 #	define ADDREF(z) Z_ADDREF_P(z)
-#	define IS_CALLABLE(a,b,c) zend_is_callable((a), (b), (c) TSRMLS_CC)
+#	define PHP_ARES_IS_CALLABLE(a,b,c) zend_is_callable((a), (b), (c) TSRMLS_CC)
 #else
 #	define ADDREF(z) ZVAL_ADDREF(z)
-#	define IS_CALLABLE(a,b,c) zend_is_callable((a), (b), (c))
+#	define PHP_ARES_IS_CALLABLE(a,b,c) zend_is_callable((a), (b), (c))
 #endif
 
 #define PHP_ARES_LE_NAME "AsyncResolver"
@@ -117,15 +117,28 @@ static const char *php_ares_T_names[] = {
 	"DNAME",
 	"SINK",
 	"OPT",
-	"APL",
-	"TKEY",
+	"APL",	/* 42 */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","","","","","","","","","","","","","","","",	/* 20x */
+	"","","","","","",												/*  6x */
+	"TKEY",	/* 249 */
 	"TSIG",
 	"IXFR",
 	"AXFR",
 	"MAILB",
 	"MAILA",
-	"ANY",
-	"ZXFR",
+	"ANY",	/* 255 */
+	"ZXFR",	/* 256 */
 };
 
 #ifdef HAVE_OLD_ARES_STRERROR
@@ -1135,7 +1148,7 @@ static PHP_FUNCTION(ares_search)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
+	if (cb && !PHP_ARES_IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 	
@@ -1162,7 +1175,7 @@ static PHP_FUNCTION(ares_query)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
+	if (cb && !PHP_ARES_IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 		
@@ -1188,7 +1201,7 @@ static PHP_FUNCTION(ares_send)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
+	if (cb && !PHP_ARES_IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 	
@@ -1215,7 +1228,7 @@ static PHP_FUNCTION(ares_gethostbyname)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
+	if (cb && !PHP_ARES_IS_CALLABLE(cb, 0, NULL)) {
 		RETURN_ARES_CB_ERROR("second");
 	}
 	
@@ -1244,7 +1257,7 @@ static PHP_FUNCTION(ares_gethostbyaddr)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
+	if (cb && !PHP_ARES_IS_CALLABLE(cb, 0, NULL)) {
 		PHP_ARES_CB_ERROR("second");
 		RETURN_FALSE;
 	}
@@ -1296,7 +1309,7 @@ static PHP_FUNCTION(ares_getnameinfo)
 	}
 	ZEND_FETCH_RESOURCE(ares, php_ares *, &rsrc, -1, PHP_ARES_LE_NAME, le_ares);
 	
-	if (cb && !IS_CALLABLE(cb, 0, NULL)) {
+	if (cb && !PHP_ARES_IS_CALLABLE(cb, 0, NULL)) {
 		PHP_ARES_CB_ERROR("second");
 		RETURN_FALSE;
 	}
@@ -1691,7 +1704,19 @@ static PHP_MINIT_FUNCTION(ares)
 #ifdef ARES_EBADHINTS
 	REGISTER_LONG_CONSTANT("ARES_EBADHINTS", ARES_EBADHINTS, CONST_PERSISTENT|CONST_CS);
 #endif
-	
+#ifdef ARES_ENOTINITIALIZED
+	REGISTER_LONG_CONSTANT("ARES_ENOTINITIALIZED", ARES_ENOTINITIALIZED, CONST_PERSISTENT|CONST_CS);
+#endif
+#ifdef ARES_ELOADIPHLPAPI
+	REGISTER_LONG_CONSTANT("ARES_ELOADIPHLPAPI", ARES_ELOADIPHLPAPI, CONST_PERSISTENT|CONST_CS);
+#endif
+#ifdef ARES_EADDRGETNETWORKPARAMS
+	REGISTER_LONG_CONSTANT("ARES_EADDRGETNETWORKPARAMS", ARES_EADDRGETNETWORKPARAMS, CONST_PERSISTENT|CONST_CS);
+#endif
+
+/* More error codes */
+#define ARES_ECANCELLED         24          /* introduced in 1.7.0 */
+
 	REGISTER_LONG_CONSTANT("ARES_FLAG_USEVC", ARES_FLAG_USEVC, CONST_PERSISTENT|CONST_CS);
 	REGISTER_LONG_CONSTANT("ARES_FLAG_PRIMARY", ARES_FLAG_PRIMARY, CONST_PERSISTENT|CONST_CS);
 	REGISTER_LONG_CONSTANT("ARES_FLAG_IGNTC", ARES_FLAG_IGNTC, CONST_PERSISTENT|CONST_CS);
@@ -1802,118 +1827,221 @@ static PHP_MINIT_FUNCTION(ares)
 	/*
 	 * ns_t (type) constants (arpa/nameser.h)
 	 */
-
+#ifdef T_A
 	/* (1)  Host address.  */
 	REGISTER_LONG_CONSTANT("ARES_T_A", T_A, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_NS
 	/* (2)  Authoritative server.  */
 	REGISTER_LONG_CONSTANT("ARES_T_NS", T_NS, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MD
 	/* (3)  Mail destination.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MD", T_MD, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MF
 	/* (4)  Mail forwarder.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MF", T_MF, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_CNAME
 	/* (5)  Canonical name.  */
 	REGISTER_LONG_CONSTANT("ARES_T_CNAME", T_CNAME, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_SOA
 	/* (6)  Start of authority zone.  */
 	REGISTER_LONG_CONSTANT("ARES_T_SOA", T_SOA, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MB
 	/* (7)  Mailbox domain name.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MB", T_MB, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MG
 	/* (8)  Mail group member.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MG", T_MG, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MR
 	/* (9)  Mail rename name.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MR", T_MR, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_NULL
 	/* (10)  Null resource record.  */
 	REGISTER_LONG_CONSTANT("ARES_T_NULL", T_NULL, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_WKS
 	/* (11)  Well known service.  */
 	REGISTER_LONG_CONSTANT("ARES_T_WKS", T_WKS, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_PTR
 	/* (12)  Domain name pointer.  */
 	REGISTER_LONG_CONSTANT("ARES_T_PTR", T_PTR, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_HINFO
 	/* (13)  Host information.  */
 	REGISTER_LONG_CONSTANT("ARES_T_HINFO", T_HINFO, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MINFO
 	/* (14)  Mailbox information.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MINFO", T_MINFO, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MX
 	/* (15)  Mail routing information.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MX", T_MX, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_TXT
 	/* (16)  Text strings.  */
 	REGISTER_LONG_CONSTANT("ARES_T_TXT", T_TXT, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_RP
 	/* (17)  Responsible person.  */
 	REGISTER_LONG_CONSTANT("ARES_T_RP", T_RP, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_AFSDB
 	/* (18)  AFS cell database.  */
 	REGISTER_LONG_CONSTANT("ARES_T_AFSDB", T_AFSDB, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_X25
 	/* (19)  X_25 calling address.  */
 	REGISTER_LONG_CONSTANT("ARES_T_X25", T_X25, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_ISDN
 	/* (20)  ISDN calling address.  */
 	REGISTER_LONG_CONSTANT("ARES_T_ISDN", T_ISDN, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_RT
 	/* (21)  Router.  */
 	REGISTER_LONG_CONSTANT("ARES_T_RT", T_RT, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_NSAP
 	/* (22)  NSAP address.  */
 	REGISTER_LONG_CONSTANT("ARES_T_NSAP", T_NSAP, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_NSAP_PTR
 	/* (23)  Reverse NSAP lookup (deprecated).  */
-	/* REGISTER_LONG_CONSTANT("ARES_T_NSAP_PTR", T_NSAP_PTR, CONST_CS|CONST_PERSISTENT); */
+	REGISTER_LONG_CONSTANT("ARES_T_NSAP_PTR", T_NSAP_PTR, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_SIG
 	/* (24)  Security signature.  */
 	REGISTER_LONG_CONSTANT("ARES_T_SIG", T_SIG, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_KEY
 	/* (25)  Security key.  */
 	REGISTER_LONG_CONSTANT("ARES_T_KEY", T_KEY, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_PX
 	/* (26)  X.400 mail mapping.  */
 	REGISTER_LONG_CONSTANT("ARES_T_PX", T_PX, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_GPOS
 	/* (27)  Geographical position (withdrawn).  */
-	/* REGISTER_LONG_CONSTANT("ARES_T_GPOS", T_GPOS, CONST_CS|CONST_PERSISTENT); */
+	REGISTER_LONG_CONSTANT("ARES_T_GPOS", T_GPOS, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_AAAA
 	/* (28)  Ip6 Address.  */
 	REGISTER_LONG_CONSTANT("ARES_T_AAAA", T_AAAA, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_LOC
 	/* (29)  Location Information.  */
 	REGISTER_LONG_CONSTANT("ARES_T_LOC", T_LOC, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_NXT
 	/* (30)  Next domain (security).  */
 	REGISTER_LONG_CONSTANT("ARES_T_NXT", T_NXT, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_EID
 	/* (31)  Endpoint identifier.  */
 	REGISTER_LONG_CONSTANT("ARES_T_EID", T_EID, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_NIMLOC
 	/* (32)  Nimrod Locator.  */
 	REGISTER_LONG_CONSTANT("ARES_T_NIMLOC", T_NIMLOC, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_SRV
 	/* (33)  Server Selection.  */
 	REGISTER_LONG_CONSTANT("ARES_T_SRV", T_SRV, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_ATMA
 	/* (34)  ATM Address  */
 	REGISTER_LONG_CONSTANT("ARES_T_ATMA", T_ATMA, CONST_CS|CONST_PERSISTENT);
-	/* (35)  Naming Authority PoinTeR  */
+#endif
+#ifdef T_NAPTR
+	/* (35)  Naming Authority Pointer  */
 	REGISTER_LONG_CONSTANT("ARES_T_NAPTR", T_NAPTR, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_KX
 	/* (36)  Key Exchange  */
-	/* REGISTER_LONG_CONSTANT("ARES_T_KX", T_KX, CONST_CS|CONST_PERSISTENT); */
+	REGISTER_LONG_CONSTANT("ARES_T_KX", T_KX, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_CERT
 	/* (37)  Certification record  */
-	/* REGISTER_LONG_CONSTANT("ARES_T_CERT", T_CERT, CONST_CS|CONST_PERSISTENT); */
+	REGISTER_LONG_CONSTANT("ARES_T_CERT", T_CERT, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_A6
 	/* (38)  IPv6 address (deprecates AAAA)  */
 	REGISTER_LONG_CONSTANT("ARES_T_A6", T_A6, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_DNAME
 	/* (39)  Non-terminal DNAME (for IPv6)  */
 	REGISTER_LONG_CONSTANT("ARES_T_DNAME", T_DNAME, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_SINK
 	/* (40)  Kitchen sink (experimentatl)  */
-	/* REGISTER_LONG_CONSTANT("ARES_T_SINK", T_SINK, CONST_CS|CONST_PERSISTENT); */
+	REGISTER_LONG_CONSTANT("ARES_T_SINK", T_SINK, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_OPT
 	/* (41)  EDNS0 option (meta-RR)  */
-	/* REGISTER_LONG_CONSTANT("ARES_T_OPT", T_OPT, CONST_CS|CONST_PERSISTENT); */
+	 REGISTER_LONG_CONSTANT("ARES_T_OPT", T_OPT, CONST_CS|CONST_PERSISTENT);
+#ifdef T_TSIG
 	/* (250)  Transaction signature.  */
 	REGISTER_LONG_CONSTANT("ARES_T_TSIG", T_TSIG, CONST_CS|CONST_PERSISTENT);
+#endif T_IXFR
 	/* (251)  Incremental zone transfer.  */
 	REGISTER_LONG_CONSTANT("ARES_T_IXFR", T_IXFR, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_AXFR
 	/* (252)  Transfer zone of authority.  */
 	REGISTER_LONG_CONSTANT("ARES_T_AXFR", T_AXFR, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MAILB
 	/* (253)  Transfer mailbox records.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MAILB", T_MAILB, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_MAILA
 	/* (254)  Transfer mail agent records.  */
 	REGISTER_LONG_CONSTANT("ARES_T_MAILA", T_MAILA, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef T_ANY
 	/* (255)  Wildcard match.  */
 	REGISTER_LONG_CONSTANT("ARES_T_ANY", T_ANY, CONST_CS|CONST_PERSISTENT);
+#endif
 	
 	/*
 	 * ns_c (dnsclass) constants (arpa/nameser.h)
 	 */
 	
+#ifdef C_IN
 	/* (1)  Internet.  */
 	REGISTER_LONG_CONSTANT("ARES_C_IN", C_IN, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef C_2
 	/* (2)  unallocated/unsupported.  */
-	/* REGISTER_LONG_CONSTANT("ARES_C_2", C_2, CONST_CS|CONST_PERSISTENT); */
+	REGISTER_LONG_CONSTANT("ARES_C_2", C_2, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef C_CHAOS
 	/* (3)  MIT Chaos-net.  */
 	REGISTER_LONG_CONSTANT("ARES_C_CHAOS", C_CHAOS, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef C_HS
 	/* (4)  MIT Hesiod.  */
 	REGISTER_LONG_CONSTANT("ARES_C_HS", C_HS, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef C_NONE
 	/* (254)  for prereq. sections in update requests  */
-	/* REGISTER_LONG_CONSTANT("ARES_C_NONE", C_NONE, CONST_CS|CONST_PERSISTENT); */
+	REGISTER_LONG_CONSTANT("ARES_C_NONE", C_NONE, CONST_CS|CONST_PERSISTENT);
+#endif
+#ifdef C_ANY
 	/* (255)  Wildcard match.  */
 	REGISTER_LONG_CONSTANT("ARES_C_ANY", C_ANY, CONST_CS|CONST_PERSISTENT);
+#endif
 	
 	le_ares = zend_register_list_destructors_ex(php_ares_le_dtor, NULL, PHP_ARES_LE_NAME, module_number);
 	le_ares_query = zend_register_list_destructors_ex(php_ares_query_le_dtor, NULL, PHP_ARES_QUERY_LE_NAME, module_number);

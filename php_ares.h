@@ -18,7 +18,7 @@
 extern zend_module_entry ares_module_entry;
 #define phpext_ares_ptr &ares_module_entry
 
-#define PHP_ARES_VERSION "0.7.0"
+#define PHP_ARES_VERSION "0.8.0dev"
 
 #ifdef ZTS
 #include "TSRM.h"
