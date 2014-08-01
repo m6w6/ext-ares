@@ -501,9 +501,26 @@ local void php_ares_query_free(php_ares_query **query) /* {{{ */
 }
 /* }}} */
 
+local zend_bool is_numeric(zval **p, long *lval) { /* {{{ */
+	zval *tmp = *p;
+	switch (Z_TYPE_PP(p)) {
+	case IS_STRING:
+		convert_to_long_ex(&tmp);
+		/* no break */
+	case IS_LONG:
+		*lval = Z_LVAL_P(tmp);
+		if (tmp != *p) {
+			zval_ptr_dtor(&tmp);
+		}
+		return !!*lval;
+	}
+	return 0;
+} /* }}} */
+
 local php_ares_options *php_ares_options_ctor(php_ares_options *options, HashTable *ht) /* {{{ */
 {
 	int i;
+	long lval;
 	zval **opt, **entry;
 	
 	if (!options) {
@@ -512,29 +529,35 @@ local php_ares_options *php_ares_options_ctor(php_ares_options *options, HashTab
 	memset(options, 0, sizeof(php_ares_options));
 	
 	if (ht && zend_hash_num_elements(ht)) {
-		if ((SUCCESS == zend_hash_find(ht, "flags", sizeof("flags"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
+		if ((SUCCESS == zend_hash_find(ht, "flags", sizeof("flags"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_FLAGS;
-			options->strct.flags = Z_LVAL_PP(opt);
+			options->strct.flags = lval;
 		}
-		if ((SUCCESS == zend_hash_find(ht, "timeout", sizeof("timeout"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
+#ifdef ARES_OPT_TIMEOUTMS
+		if ((SUCCESS == zend_hash_find(ht, "timeoutms", sizeof("timeoutms"), (void *) &opt)) && is_numeric(opt, &lval)) {
+			options->flags |= ARES_OPT_TIMEOUTMS;
+			options->strct.timeout = lval;
+		} else
+#endif
+		if ((SUCCESS == zend_hash_find(ht, "timeout", sizeof("timeout"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_TIMEOUT;
-			options->strct.timeout = Z_LVAL_PP(opt);
+			options->strct.timeout = lval;
 		}
-		if ((SUCCESS == zend_hash_find(ht, "tries", sizeof("tries"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
+		if ((SUCCESS == zend_hash_find(ht, "tries", sizeof("tries"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_TRIES;
-			options->strct.tries = Z_LVAL_PP(opt);
+			options->strct.tries = lval;
 		}
-		if ((SUCCESS == zend_hash_find(ht, "ndots", sizeof("ndots"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
+		if ((SUCCESS == zend_hash_find(ht, "ndots", sizeof("ndots"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_NDOTS;
-			options->strct.ndots = Z_LVAL_PP(opt);
+			options->strct.ndots = lval;
 		}
-		if ((SUCCESS == zend_hash_find(ht, "udp_port", sizeof("udp_port"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
+		if ((SUCCESS == zend_hash_find(ht, "udp_port", sizeof("udp_port"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_UDP_PORT;
-			options->strct.udp_port = htons((unsigned short) Z_LVAL_PP(opt));
+			options->strct.udp_port = htons((unsigned short) lval);
 		}
-		if ((SUCCESS == zend_hash_find(ht, "tcp_port", sizeof("tcp_port"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_LONG)) {
+		if ((SUCCESS == zend_hash_find(ht, "tcp_port", sizeof("tcp_port"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_TCP_PORT;
-			options->strct.tcp_port = htons((unsigned short) Z_LVAL_PP(opt));
+			options->strct.tcp_port = htons((unsigned short) lval);
 		}
 		if ((SUCCESS == zend_hash_find(ht, "servers", sizeof("servers"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_ARRAY) && (i = zend_hash_num_elements(Z_ARRVAL_PP(opt)))) {
 			options->strct.servers = ecalloc(i, sizeof(struct in_addr));
