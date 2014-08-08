@@ -61,6 +61,7 @@ if test "$PHP_ARES" != "no"; then
 	if test $PHP_ARES_LIB = "unknown"; then
 		AC_MSG_ERROR(could neither find libares nor libcares)
 	elif test $PHP_ARES_LIB = "cares"; then
+		AC_DEFINE([PHP_ARES_CARES], [1], [ ])
 		AC_DEFINE_UNQUOTED([PHP_ARES_LIBNAME], "c-ares (CURL)", [ ])
 		AC_DEFINE([PHP_ARES_EXPAND_LEN_TYPE], [long], [ ])
 	else

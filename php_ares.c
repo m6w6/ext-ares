@@ -553,11 +553,19 @@ local php_ares_options *php_ares_options_ctor(php_ares_options *options, HashTab
 		}
 		if ((SUCCESS == zend_hash_find(ht, "udp_port", sizeof("udp_port"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_UDP_PORT;
+#ifdef PHP_ARES_CARES
 			options->strct.udp_port = (unsigned short) lval;
+#else
+			options->strct.udp_port = htons((unsigned short) lval);
+#endif
 		}
 		if ((SUCCESS == zend_hash_find(ht, "tcp_port", sizeof("tcp_port"), (void *) &opt)) && is_numeric(opt, &lval)) {
 			options->flags |= ARES_OPT_TCP_PORT;
+#ifdef PHP_ARES_CARES
 			options->strct.tcp_port = (unsigned short) lval;
+#else
+			options->strct.tcp_port = htons((unsigned short) lval);
+#endif
 		}
 		if ((SUCCESS == zend_hash_find(ht, "servers", sizeof("servers"), (void *) &opt)) && (Z_TYPE_PP(opt) == IS_ARRAY) && (i = zend_hash_num_elements(Z_ARRVAL_PP(opt)))) {
 			options->strct.servers = ecalloc(i, sizeof(struct in_addr));
