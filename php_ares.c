@@ -1105,7 +1105,7 @@ static PHP_FUNCTION(ares_init)
 		RETURN_FALSE;
 	}
 	
-	ares = emalloc(sizeof(php_ares));
+	ares = ecalloc(1, sizeof(php_ares));
 	TSRMLS_SET_CTX(ares->tsrm_ls);
 	zend_llist_init(&ares->queries, sizeof(php_ares_query *), (llist_dtor_func_t) php_ares_query_llist_dtor, 0);
 	php_ares_options_ctor(&ares->options, opt_array ? Z_ARRVAL_P(opt_array) : NULL);
