@@ -2256,6 +2256,15 @@ zend_function_entry ares_functions[] = {
 	PHP_FE(ares_select, ai_ares_select)
 	PHP_FE(ares_fds, ai_ares_fds)
 	PHP_FE(ares_timeout, NULL)
+#ifdef HAVE_ARES_SET_LOCAL_DEV
+	PHP_FE(ares_set_local_dev, NULL)
+#endif
+#ifdef HAVE_ARES_SET_LOCAL_IP4
+	PHP_FE(ares_set_local_ip4, NULL)
+#endif
+#ifdef HAVE_ARES_SET_LOCAL_IP6
+	PHP_FE(ares_set_local_ip6, NULL)
+#endif
 	{NULL, NULL, NULL}
 };
 /* }}} */
