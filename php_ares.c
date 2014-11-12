@@ -18,6 +18,7 @@
 
 #include "php.h"
 #include "php_ini.h"
+#include "php_streams.h"
 #include "ext/standard/info.h"
 #include "php_ares.h"
 
@@ -686,7 +687,7 @@ local int php_ares_parse(const unsigned char *abuf, int alen, zval *result TSRML
 	for (answer_count = ntohs(header->ancount); answer_count-- && pointer < (abuf + alen); ) {
 		uint16_t stmp, type, class;
 		uint32_t ltmp, ttl;
-		zval **entry_ptr, *entry = NULL;
+		zval *entry = NULL;
 
 		if (0 > (byte_count = php_ares_skip(pointer, abuf, alen TSRMLS_CC))) {
 			return FAILURE;
@@ -824,7 +825,7 @@ static void php_ares_callback_func_old(void *aq, int status, unsigned char *abuf
 		
 		MAKE_STD_ZVAL(parsed);
 		ZVAL_NULL(parsed);
-		if (SUCCESS == php_ares_parse(abuf, alen, parsed)) {
+		if (SUCCESS == php_ares_parse(abuf, alen, parsed TSRMLS_CC)) {
 			q->result.std.arr = parsed;
 		} else {
 			zval_ptr_dtor(&parsed);
@@ -1011,13 +1012,19 @@ local int php_ares_process(php_ares *ares, long max_timeout) /* {{{ */
 }
 /* }}} */
 
-local int php_ares_publish_fds(fd_set *R, fd_set *W, zval *r, zval *w) /* {{{ */
+local int php_ares_publish_fds(fd_set *R, fd_set *W, zval *r, zval *w, HashTable *resource_map) /* {{{ */
 {
 	int i, nfds = 0;
+	zval **fd;
 	
 	for (i = 0; i < FD_SETSIZE; ++i) {
 		if (FD_ISSET(i, R)) {
-			add_next_index_long(r, i);
+			if (resource_map && (SUCCESS == zend_hash_index_find(resource_map, i, (void *) &fd))) {
+				zval_add_ref(fd);
+				add_next_index_zval(r, *fd);
+			} else {
+				add_next_index_long(r, i);
+			}
 			if (i > nfds) {
 				nfds = i;
 			}
@@ -1026,7 +1033,12 @@ local int php_ares_publish_fds(fd_set *R, fd_set *W, zval *r, zval *w) /* {{{ */
 	
 	for (i = 0; i < FD_SETSIZE; ++i) {
 		if (FD_ISSET(i, W)) {
-			add_next_index_long(w, i);
+			if (resource_map && (SUCCESS == zend_hash_index_find(resource_map, i, (void *) &fd))) {
+				zval_add_ref(fd);
+				add_next_index_zval(r, *fd);
+			} else {
+				add_next_index_long(w, i);
+			}
 			if (i > nfds) {
 				nfds = i;
 			}
@@ -1037,16 +1049,33 @@ local int php_ares_publish_fds(fd_set *R, fd_set *W, zval *r, zval *w) /* {{{ */
 }
 /* }}} */
 
-local int php_ares_extract_fds(zval *r, zval *w, fd_set *R, fd_set *W) /* {{{ */
+local int php_ares_extract_fds(zval *r, zval *w, fd_set *R, fd_set *W, HashTable *resource_map TSRMLS_DC) /* {{{ */
 {
 	zval **fd;
 	int nfds = 0;
+	zval zmap;
 	
+	INIT_ZVAL(zmap);
+	Z_ARRVAL(zmap) = resource_map;
+	Z_TYPE(zmap) = IS_ARRAY;
 	if (r && zend_hash_num_elements(Z_ARRVAL_P(r))) {
 		for (	zend_hash_internal_pointer_reset(Z_ARRVAL_P(r));
 				SUCCESS == zend_hash_get_current_data(Z_ARRVAL_P(r), (void *) &fd);
 				zend_hash_move_forward(Z_ARRVAL_P(r))) {
-			if (Z_TYPE_PP(fd) == IS_LONG) {
+			if (Z_TYPE_PP(fd) == IS_RESOURCE) {
+				php_stream *s = NULL;
+				int id = 0;
+
+				ZEND_FETCH_RESOURCE_NO_RETURN(s, php_stream *, fd, -1, NULL, php_file_le_stream());
+				if (s && (SUCCESS == php_stream_cast(s, PHP_STREAM_AS_FD_FOR_SELECT, (void *) &id, 1))) {
+					zval_add_ref(fd);
+					add_index_zval(&zmap, id, *fd);
+					FD_SET(id, R);
+					if (id > nfds) {
+						nfds = id;
+					}
+				}
+			} else if (Z_TYPE_PP(fd) == IS_LONG) {
 				FD_SET(Z_LVAL_PP(fd), R);
 				if (Z_LVAL_PP(fd) > nfds) {
 					nfds = Z_LVAL_PP(fd);
@@ -1059,7 +1088,20 @@ local int php_ares_extract_fds(zval *r, zval *w, fd_set *R, fd_set *W) /* {{{ */
 		for (	zend_hash_internal_pointer_reset(Z_ARRVAL_P(w));
 				SUCCESS == zend_hash_get_current_data(Z_ARRVAL_P(w), (void *) &fd);
 				zend_hash_move_forward(Z_ARRVAL_P(w))) {
-			if (Z_TYPE_PP(fd) == IS_LONG) {
+			if (Z_TYPE_PP(fd) == IS_RESOURCE) {
+				php_stream *s = NULL;
+				int id = 0;
+
+				ZEND_FETCH_RESOURCE_NO_RETURN(s, php_stream *, fd, -1, NULL, php_file_le_stream());
+				if (s && (SUCCESS == php_stream_cast(s, PHP_STREAM_AS_FD_FOR_SELECT, (void *) &id, 1))) {
+					zval_add_ref(fd);
+					add_index_zval(&zmap, id, *fd);
+					FD_SET(id, W);
+					if (id > nfds) {
+						nfds = id;
+					}
+				}
+			} else if (Z_TYPE_PP(fd) == IS_LONG) {
 				FD_SET(Z_LVAL_PP(fd), W);
 				if (Z_LVAL_PP(fd) > nfds) {
 					nfds = Z_LVAL_PP(fd);
@@ -1665,7 +1707,7 @@ static PHP_FUNCTION(ares_process)
 	FD_ZERO(&R);
 	FD_ZERO(&W);
 	
-	php_ares_extract_fds(read, write, &R, &W);
+	php_ares_extract_fds(read, write, &R, &W, NULL TSRMLS_CC);
 	ares_process(ares->channel, &R, &W);
 }
 /* }}} */
@@ -1679,6 +1721,7 @@ static PHP_FUNCTION(ares_select)
 	int nfds;
 	long timeout;
 	struct timeval tv;
+	HashTable resource_map;
 	
 	if (SUCCESS != zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "aal", &read, &write, &timeout)) {
 		RETURN_FALSE;
@@ -1695,14 +1738,17 @@ static PHP_FUNCTION(ares_select)
 	FD_ZERO(&R);
 	FD_ZERO(&W);
 	
-	nfds = php_ares_extract_fds(read, write, &R, &W);
+	zend_hash_init(&resource_map, zend_hash_num_elements(Z_ARRVAL_P(read) + zend_hash_num_elements(Z_ARRVAL_P(write))), NULL, ZVAL_PTR_DTOR, 0);
+	nfds = php_ares_extract_fds(read, write, &R, &W, &resource_map TSRMLS_CC);
 	if (-1 < select(nfds, &R, &W, NULL, &tv)) {
 		zend_hash_clean(Z_ARRVAL_P(read));
 		zend_hash_clean(Z_ARRVAL_P(write));
-		php_ares_publish_fds(&R, &W, read, write);
-		RETURN_TRUE;
+		php_ares_publish_fds(&R, &W, read, write, &resource_map);
+		RETVAL_TRUE;
+	} else {
+		RETVAL_FALSE;
 	}
-	RETURN_FALSE;
+	zend_hash_destroy(&resource_map);
 }
 /* }}} */
 
@@ -1748,7 +1794,7 @@ static PHP_FUNCTION(ares_fds)
 	array_init(read);
 	array_init(write);
 	ares_fds(ares->channel, &R, &W);
-	RETVAL_LONG(php_ares_publish_fds(&R, &W, read, write));
+	RETVAL_LONG(php_ares_publish_fds(&R, &W, read, write, NULL));
 }
 /* }}} */
 
