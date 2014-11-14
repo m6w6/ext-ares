@@ -175,6 +175,18 @@ static const char *php_ares_T_names[] = {
 
 #define PHP_ARES_QUERY_BUFFER_LEN 2<<0xf
 
+#ifdef HAVE_ARES_INET_PTON
+#	define inet_pton ares_inet_pton_wrapper
+static inline int ares_inet_pton_wrapper(int af, const void *src, char *dst, socklen_t size)
+{
+	return dst == ares_inet_pton(af, src, dst, size);
+}
+#endif
+
+#ifdef HAVE_ARES_INET_NTOP
+#	define inet_ntop ares_inet_ntop
+#endif
+
 /* {{{ typedefs */
 typedef struct _php_ares_options {
 	struct ares_options strct;
@@ -574,7 +586,7 @@ local php_ares_options *php_ares_options_ctor(php_ares_options *options, HashTab
 					SUCCESS == zend_hash_get_current_data(Z_ARRVAL_PP(opt), (void *) &entry);
 					zend_hash_move_forward(Z_ARRVAL_PP(opt))) {
 				if (Z_TYPE_PP(entry) == IS_STRING) {
-					inet_aton(Z_STRVAL_PP(entry), &options->strct.servers[options->strct.nservers++]);
+					inet_pton(AF_INET, Z_STRVAL_PP(entry), &options->strct.servers[options->strct.nservers++]);
 				}
 			}
 			if (options->strct.nservers) {
@@ -710,10 +722,19 @@ local int php_ares_parse(const unsigned char *abuf, int alen, zval *result TSRML
 #endif
 		switch (type) {
 			case T_A:
-				spprintf(&name, 0, "%d.%d.%d.%d", pointer[0], pointer[1], pointer[2], pointer[3]);
+				name = ecalloc(1, 16);
+				inet_ntop(AF_INET, pointer, name, 16);
 				add_assoc_string(entry, "addr", name, 0);
 				pointer += byte_count;
 				break;
+#ifdef T_AAAA
+			case T_AAAA:
+				name = ecalloc(1, 48);
+				inet_ntop(AF_INET6, pointer, name, 48);
+				add_assoc_string(entry, "addr", name, 0);
+				pointer += byte_count;
+				break;
+#endif
 
 			case T_NS:
 			case T_PTR:
@@ -796,6 +817,9 @@ local int php_ares_parse(const unsigned char *abuf, int alen, zval *result TSRML
 				break;
 
 			default:
+#ifndef HAVE_INET_PTON
+				skip:
+#endif
 				zval_ptr_dtor(&entry);
 				entry = NULL;
 				pointer += byte_count;

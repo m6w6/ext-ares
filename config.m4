@@ -106,6 +106,14 @@ if test "$PHP_ARES" != "no"; then
 		[AC_DEFINE([HAVE_ARES_SET_LOCAL_IP6], [1], [ ])], [ ],
 		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
 	)
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_inet_ntop,
+		[AC_DEFINE([HAVE_ARES_INET_NTOP], [1], [ ])], [ ],
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
+	)
+	PHP_CHECK_LIBRARY($PHP_ARES_LIB, ares_inet_pton,
+		[AC_DEFINE([HAVE_ARES_INET_NTOP], [1], [ ])], [ ],
+		[$PHP_ARES_LIBADD -L$PHP_ARES_DIR/$PHP_LIBDIR]
+	)
 	
 	dnl ##########
 	dnl check new c-ares callback API
