@@ -21,7 +21,7 @@
   <email>mike@php.net</email>
   <active>yes</active>
  </lead>
- <date>2009-12-23</date>
+ <date>2014-11-14</date>
  <version>
   <release>0.8.0</release>
   <api>0.8.0</api>
@@ -35,6 +35,7 @@
 * Fixed bug #63131 (OSX support for PECL ares)
 + Added support for options and flags up to c-ares 1.10
 + Added ares_set_local_{dev,ip4,ip6} functions
++ Added support for AAAA answers
 ]]></notes>
  <contents>
   <dir name="/">
