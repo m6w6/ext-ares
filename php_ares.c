@@ -673,13 +673,153 @@ local PHP_ARES_EXPAND_LEN_TYPE php_ares_skip(const unsigned char *pointer, const
 	return -1;
 }
 
+local int php_ares_parse_record(const unsigned char *abuf, const int alen, const unsigned char **rptr, zval *result TSRMLS_DC)
+{
+	uint16_t stmp, type, class;
+	uint32_t ltmp, ttl;
+	zval *entry = NULL;
+	PHP_ARES_EXPAND_LEN_TYPE byte_count;
+	const unsigned char *pointer = *rptr;
+	char *name;
+	int rc;
+
+	if (0 > (byte_count = php_ares_skip(pointer, abuf, alen TSRMLS_CC))) {
+		return FAILURE;
+	}
+
+	pointer += byte_count;
+
+	MAKE_STD_ZVAL(entry);
+	array_init(entry);
+
+	GETSHORT(type, pointer);
+	add_assoc_string(entry, "type", estrdup(php_ares_T_names[type]), 0);
+	GETSHORT(class, pointer);
+	add_assoc_string(entry, "class", estrdup(php_ares_C_names[class]), 0);
+	GETLONG(ttl, pointer);
+	add_assoc_long(entry, "ttl", ttl);
+	GETSHORT(byte_count, pointer);
+#if 0
+	fprintf(stderr, ">> processing %s answer of length %d\n", php_ares_T_names[type], byte_count);
+#endif
+	switch (type) {
+		case T_A:
+			name = ecalloc(1, 16);
+			inet_ntop(AF_INET, pointer, name, 16);
+			add_assoc_string(entry, "addr", name, 0);
+			pointer += byte_count;
+			break;
+#ifdef T_AAAA
+		case T_AAAA:
+			name = ecalloc(1, 48);
+			inet_ntop(AF_INET6, pointer, name, 48);
+			add_assoc_string(entry, "addr", name, 0);
+			pointer += byte_count;
+			break;
+#endif
+
+		case T_NS:
+		case T_PTR:
+		case T_CNAME:
+			if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
+				PHP_ARES_ERROR(rc);
+				return FAILURE;
+			}
+			pointer += byte_count;
+			add_assoc_string(entry, "name", name, 1);
+			ares_free_string(name);
+			break;
+
+		case T_MX:
+			GETSHORT(stmp, pointer);
+			if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
+				PHP_ARES_ERROR(rc);
+				return FAILURE;
+			}
+			pointer += byte_count;
+			add_assoc_long(entry, "weight", stmp);
+			add_assoc_string(entry, "name", name, 1);
+			ares_free_string(name);
+			break;
+
+		case T_SRV:
+			GETSHORT(stmp, pointer);
+			add_assoc_long(entry, "priority", stmp);
+			GETSHORT(stmp, pointer);
+			add_assoc_long(entry, "weight", stmp);
+			GETSHORT(stmp, pointer);
+			add_assoc_long(entry, "port", stmp);
+
+			if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
+				PHP_ARES_ERROR(rc);
+				zval_ptr_dtor(&entry);
+				return FAILURE;
+			}
+			pointer += byte_count;
+			add_assoc_string(entry, "name", name, 1);
+			ares_free_string(name);
+			break;
+
+		case T_SOA:
+			if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
+				PHP_ARES_ERROR(rc);
+				zval_ptr_dtor(&entry);
+				return FAILURE;
+			}
+			pointer += byte_count;
+			add_assoc_string(entry, "name", name, 1);
+			ares_free_string(name);
+
+			if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
+				PHP_ARES_ERROR(rc);
+				zval_ptr_dtor(&entry);
+				return FAILURE;
+			}
+			pointer += byte_count;
+			add_assoc_string(entry, "mail", name, 1);
+			ares_free_string(name);
+
+			GETLONG(ltmp, pointer);
+			add_assoc_long(entry, "serial", ltmp);
+			GETLONG(ltmp, pointer);
+			add_assoc_long(entry, "refresh", ltmp);
+			GETLONG(ltmp, pointer);
+			add_assoc_long(entry, "retry", ltmp);
+			GETLONG(ltmp, pointer);
+			add_assoc_long(entry, "expire", ltmp);
+			GETLONG(ltmp, pointer);
+			add_assoc_long(entry, "minimum-ttl", ltmp);
+			break;
+
+		case T_TXT:
+			for (ltmp = 0; ltmp < byte_count; ltmp += pointer[ltmp] + 1) {
+				add_next_index_stringl(entry, (const char *) &pointer[ltmp + 1], pointer[ltmp], 1);
+			}
+			pointer += byte_count;
+			break;
+
+		default:
+#ifndef HAVE_INET_PTON
+			skip:
+#endif
+			zval_ptr_dtor(&entry);
+			entry = NULL;
+			pointer += byte_count;
+			break;
+	}
+
+	if (entry) {
+		add_next_index_zval(result, entry);
+	}
+	return SUCCESS;
+}
+
 local int php_ares_parse(const unsigned char *abuf, int alen, zval *result TSRMLS_DC) /* {{{ */
 {
 	HEADER *header;
 	PHP_ARES_EXPAND_LEN_TYPE byte_count;
 	const unsigned char *pointer;
-	char *name;
-	int rc, query_count, answer_count;
+	int query_count, answer_count, auth_count, other_count;
 
 	convert_to_array(result);
 
@@ -689,7 +829,7 @@ local int php_ares_parse(const unsigned char *abuf, int alen, zval *result TSRML
 
 	header = (HEADER *) abuf;
 	pointer = abuf + HFIXEDSZ;
-	
+
 	for (query_count = ntohs(header->qdcount); query_count--; pointer += byte_count + QFIXEDSZ) {
 		if (0 > (byte_count = php_ares_skip(pointer, abuf, alen TSRMLS_CC))) {
 			return FAILURE;
@@ -697,137 +837,20 @@ local int php_ares_parse(const unsigned char *abuf, int alen, zval *result TSRML
 	}
 
 	for (answer_count = ntohs(header->ancount); answer_count-- && pointer < (abuf + alen); ) {
-		uint16_t stmp, type, class;
-		uint32_t ltmp, ttl;
-		zval *entry = NULL;
-
-		if (0 > (byte_count = php_ares_skip(pointer, abuf, alen TSRMLS_CC))) {
+		if (SUCCESS != php_ares_parse_record(abuf, alen, &pointer, result TSRMLS_CC)) {
 			return FAILURE;
 		}
+	}
 
-		pointer += byte_count;
-
-		MAKE_STD_ZVAL(entry);
-		array_init(entry);
-
-		GETSHORT(type, pointer);
-		add_assoc_string(entry, "type", estrdup(php_ares_T_names[type]), 0);
-		GETSHORT(class, pointer);
-		add_assoc_string(entry, "class", estrdup(php_ares_C_names[class]), 0);
-		GETLONG(ttl, pointer);
-		add_assoc_long(entry, "ttl", ttl);
-		GETSHORT(byte_count, pointer);
-#if 0
-		fprintf(stderr, ">> processing %s answer of length %d\n", php_ares_T_names[type], byte_count);
-#endif
-		switch (type) {
-			case T_A:
-				name = ecalloc(1, 16);
-				inet_ntop(AF_INET, pointer, name, 16);
-				add_assoc_string(entry, "addr", name, 0);
-				pointer += byte_count;
-				break;
-#ifdef T_AAAA
-			case T_AAAA:
-				name = ecalloc(1, 48);
-				inet_ntop(AF_INET6, pointer, name, 48);
-				add_assoc_string(entry, "addr", name, 0);
-				pointer += byte_count;
-				break;
-#endif
-
-			case T_NS:
-			case T_PTR:
-			case T_CNAME:
-				if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
-					PHP_ARES_ERROR(rc);
-					return FAILURE;
-				}
-				pointer += byte_count;
-				add_assoc_string(entry, "name", name, 1);
-				ares_free_string(name);
-				break;
-
-			case T_MX:
-				GETSHORT(stmp, pointer);
-				if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
-					PHP_ARES_ERROR(rc);
-					return FAILURE;
-				}
-				pointer += byte_count;
-				add_assoc_long(entry, "weight", stmp);
-				add_assoc_string(entry, "name", name, 1);
-				ares_free_string(name);
-				break;
-
-			case T_SRV:
-				GETSHORT(stmp, pointer);
-				add_assoc_long(entry, "priority", stmp);
-				GETSHORT(stmp, pointer);
-				add_assoc_long(entry, "weight", stmp);
-				GETSHORT(stmp, pointer);
-				add_assoc_long(entry, "port", stmp);
-
-				if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
-					PHP_ARES_ERROR(rc);
-					zval_ptr_dtor(&entry);
-					return FAILURE;
-				}
-				pointer += byte_count;
-				add_assoc_string(entry, "name", name, 1);
-				ares_free_string(name);
-				break;
-
-			case T_SOA:
-				if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
-					PHP_ARES_ERROR(rc);
-					zval_ptr_dtor(&entry);
-					return FAILURE;
-				}
-				pointer += byte_count;
-				add_assoc_string(entry, "name", name, 1);
-				ares_free_string(name);
-
-				if (ARES_SUCCESS != (rc = ares_expand_name(pointer, abuf, alen, &name, &byte_count))) {
-					PHP_ARES_ERROR(rc);
-					zval_ptr_dtor(&entry);
-					return FAILURE;
-				}
-				pointer += byte_count;
-				add_assoc_string(entry, "mail", name, 1);
-				ares_free_string(name);
-
-				GETLONG(ltmp, pointer);
-				add_assoc_long(entry, "serial", ltmp);
-				GETLONG(ltmp, pointer);
-				add_assoc_long(entry, "refresh", ltmp);
-				GETLONG(ltmp, pointer);
-				add_assoc_long(entry, "retry", ltmp);
-				GETLONG(ltmp, pointer);
-				add_assoc_long(entry, "expire", ltmp);
-				GETLONG(ltmp, pointer);
-				add_assoc_long(entry, "minimum-ttl", ltmp);
-				break;
-
-			case T_TXT:
-				for (ltmp = 0; ltmp < byte_count; ltmp += pointer[ltmp] + 1) {
-					add_next_index_stringl(entry, (const char *) &pointer[ltmp + 1], pointer[ltmp], 1);
-				}
-				pointer += byte_count;
-				break;
-
-			default:
-#ifndef HAVE_INET_PTON
-				skip:
-#endif
-				zval_ptr_dtor(&entry);
-				entry = NULL;
-				pointer += byte_count;
-				break;
+	for (auth_count = ntohs(header->nscount); auth_count-- && pointer < (abuf + alen); ) {
+		if (SUCCESS != php_ares_parse_record(abuf, alen, &pointer, result TSRMLS_CC)) {
+			return FAILURE;
 		}
+	}
 
-		if (entry) {
-			add_next_index_zval(result, entry);
+	for (other_count = ntohs(header->arcount); other_count-- && pointer < (abuf + alen); ) {
+		if (SUCCESS != php_ares_parse_record(abuf, alen, &pointer, result TSRMLS_CC)) {
+			return FAILURE;
 		}
 	}
 
@@ -1553,26 +1576,6 @@ static PHP_FUNCTION(ares_result)
 	}
 	
 	switch (query->error) {
-		case 0:
-			switch (query->type) {
-				case PHP_ARES_CB_STD:
-					if (query->result.std.arr) {
-						RETVAL_ZVAL(query->result.std.arr, 1, 0);
-					} else {
-						RETVAL_STRINGL(query->result.std.buf, query->result.std.len, 1);
-					}
-					break;
-				case PHP_ARES_CB_HOST:
-					object_init(return_value);
-					php_ares_hostent_to_struct(&query->result.host, HASH_OF(return_value));
-					break;
-				case PHP_ARES_CB_NINFO:
-					object_init(return_value);
-					add_property_string(return_value, "node", query->result.ninfo.node ? query->result.ninfo.node : "", 1);
-					add_property_string(return_value, "service", query->result.ninfo.service ? query->result.ninfo.service : "", 1);
-					break;
-			}
-			break;
 		case -1:
 			RETVAL_FALSE;
 			break;
@@ -1588,6 +1591,30 @@ static PHP_FUNCTION(ares_result)
 #endif
 			}
 			RETVAL_FALSE;
+			/* no break */
+		case 0:
+			switch (query->type) {
+				case PHP_ARES_CB_STD:
+					if (query->result.std.arr) {
+						RETVAL_ZVAL(query->result.std.arr, 1, 0);
+					} else if (query->result.std.len > 0) {
+						RETVAL_STRINGL(query->result.std.buf, query->result.std.len, 1);
+					}
+					break;
+				case PHP_ARES_CB_HOST:
+					if (query->result.host.h_name) {
+						object_init(return_value);
+						php_ares_hostent_to_struct(&query->result.host, HASH_OF(return_value));
+					}
+					break;
+				case PHP_ARES_CB_NINFO:
+					if (query->result.ninfo.node || query->result.ninfo.service) {
+						object_init(return_value);
+						add_property_string(return_value, "node", query->result.ninfo.node ? query->result.ninfo.node : "", 1);
+						add_property_string(return_value, "service", query->result.ninfo.service ? query->result.ninfo.service : "", 1);
+					}
+					break;
+			}
 			break;
 	}
 }
