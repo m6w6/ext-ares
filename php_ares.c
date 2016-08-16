@@ -811,6 +811,7 @@ local int php_ares_parse_record(const unsigned char *abuf, const int alen, const
 	if (entry) {
 		add_next_index_zval(result, entry);
 	}
+	*rptr = pointer;
 	return SUCCESS;
 }
 
